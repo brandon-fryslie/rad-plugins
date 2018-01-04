@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-require_relative '../git/bin/e'
+require_relative './git-cmd-base'
 
 # This script will cause all new branches to pull by rebasing, and all existing
 # branches to pull by rebasing for the repos provided

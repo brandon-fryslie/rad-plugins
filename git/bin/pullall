@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-require_relative '../git/bin/e'
+require_relative './git-cmd-base'
 
 puts "Pulling --rebase repos #{REPO_PATHS.map {|p| File.basename(p)}.join(' ').cyan}"
 puts 'WIP will be stashed'.yellow.bold

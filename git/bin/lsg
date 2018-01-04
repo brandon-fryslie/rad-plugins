@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-require_relative '../git/bin/e'
+require_relative './git-cmd-base'
 
 def print_status_string(repo_path)
   git_cmd = "git -C #{repo_path}"
