@@ -1,11 +1,9 @@
-# Golang plugin
+# Golang plugin for use with Homebrew Go installation
 
 rad-init-golang() {
-  local BREW_GOPATH="$HOME/golang"
-
-  if [[ -d $BREW_GOPATH ]]; then
-    export GOPATH=$BREW_GOPATH
-    export PATH="$GOPATH/bin:$PATH"
+  if [[ -z $GOPATH ]]; then
+    export GOPATH=$HOME/golang
+    export PATH="$PATH:$GOPATH/bin"
   fi
 }
 
