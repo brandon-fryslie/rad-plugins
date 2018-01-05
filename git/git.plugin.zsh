@@ -1,7 +1,7 @@
 source "${0:a:h}/git-zaw.zsh"
 source "${0:a:h}/git-status-zaw.zsh"
 
-export PATH="$(rad-realpath "${0:a:h}/bin"):$PATH"
+export PATH="$PATH:$(rad-realpath "${0:a:h}/bin")"
 
 alias gb="git for-each-ref --sort=committerdate refs/heads/ --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(color:red)%(objectname:short)%(color:reset) - %(contents:subject) - %(authorname) (%(color:green)%(committerdate:relative)%(color:reset))'"
 alias gd="git diff"

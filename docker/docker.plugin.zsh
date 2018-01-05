@@ -2,7 +2,7 @@ source "${0:a:h}/docker-zaw-container.zsh"
 source "${0:a:h}/docker-zaw-image.zsh"
 source "${0:a:h}/docker-zaw-dhost.zsh"
 
-export PATH="$(rad-realpath "${0:a:h}/bin"):$PATH"
+export PATH="$PATH:$(rad-realpath "${0:a:h}/bin")"
 
 alias ds="docker status"
 alias di="docker images"
