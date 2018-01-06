@@ -5,7 +5,7 @@ function zaw-src-rad-dev() {
     local results="$(find ~/.zgen -wholename '*plugin.zsh')"
 
     local title=$(printf '%-40s %-20s' "Repo" "Plugin")
-    local desc="$(echo "$results" | find ~/.zgen -wholename '*plugin.zsh' | perl -ne 'printf("%-40s %-20s\n", $1, $2) if m#^(?:.*/.zgen/)(?:git@[\w+\.-]+COLON-)?([\w\.@-]+/[\w\.-]+?)(?:.git)?(?:-master)?/.*?([\w-]+\.plugin\.zsh)$#g')"
+    local desc="$(echo "$results" | perl -ne 'printf("%-40s %-20s\n", $1, $2) if m#^(?:.*/.zgen/)(?:git@[\w+\.-]+COLON-)?([\w\.@-]+/[\w\.-]+?)(?:.git)?(?:-master)?/.*?([\w-]+\.plugin\.zsh)$#g')"
 
     : ${(A)candidates::=${(f)results}}
     : ${(A)cand_descriptions::=${(f)desc}}
