@@ -14,17 +14,3 @@ rad-bold() { echo -e "$(rad-colorize 1 "$@")"; }
 rad-red() { echo -e "$(rad-colorize '1;31' "$@")"; }
 rad-green() { echo -e "$(rad-colorize 32 "$@")"; }
 rad-yellow() { echo -e "$(rad-colorize 33 "$@")"; }
-
-rad-realpath() {
-    local f base dir
-    f=$@
-    if [ -d "$f" ]; then
-        base=""
-        dir="$f"
-    else
-        base="/$(basename "$f")"
-        dir=$(dirname "$f")
-    fi
-    dir=$(cd "$dir" && /bin/pwd)
-    echo "$dir$base"
-}
