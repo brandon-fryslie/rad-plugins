@@ -28,12 +28,12 @@ really-really-amend() {
   [[ -z $upstream_remote ]] && upstream_remote=origin
 
   if [[ $upstream_remote != origin ]] && [[ $upstream_remote != upstream ]]; then
-    red "Not force pushing to upstream '$upstream_remote'"
+    rad-red "Not force pushing to upstream '$upstream_remote'"
     return 1
   fi
 
   if [[ $branch_name == master ]]; then
-    red "Don't do this on master, dummy"
+    rad-red "Don't do this on master, dummy"
     return 1
   fi
 
