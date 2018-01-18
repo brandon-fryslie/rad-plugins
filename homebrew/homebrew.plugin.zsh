@@ -1,13 +1,14 @@
 # Plugin for ensuring homebrew is installed
 
-install_cmd='/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"'
-brew_bin=/usr/local/bin/brew
+rad-install-homebrew() {
+  rad-red "Installing Homebrew"
+  /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+}
 
 if [[ $(uname) == 'Darwin' ]]; then
-  if [[ -x $brew_bin ]]; then
+  if [[ -x /usr/local/bin/brew ]]; then
     export PATH="/usr/local/bin:$PATH"
   else
-    rad-red "Installing Homebrew with command ${install_cmd}"
-    $install_cmd
+    rad-install-homebrew
   fi
 fi
