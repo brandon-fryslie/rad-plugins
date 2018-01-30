@@ -24,12 +24,19 @@ export GIT_EDITOR="$(rad-get-editor)"
 
 really-really-amend() {
   local branch_name="$(git rev-parse --abbrev-ref HEAD)"
-  local upstream_remote=${$(git rev-parse --verify "${branch_name}@{upstream}" --symbolic-full-name --abbrev-ref 2>/dev/null)%/*}
-  [[ -z $upstream_remote ]] && upstream_remote=origin
+  local upstream_remote
 
-  if [[ $upstream_remote != origin ]] && [[ $upstream_remote != upstream ]]; then
-    rad-red "Not force pushing to upstream '$upstream_remote'"
-    return 1
+  if [[ -n $1 ]]; then
+    upstream_remote=$1
+  else
+    upstream_remote=${$(git rev-parse --verify "${branch_name}@{upstream}" --symbolic-full-name --abbrev-ref 2>/dev/null)%/*}
+
+    [[ -z $upstream_remote ]] && upstream_remote=origin
+
+    if [[ $upstream_remote != origin ]] && [[ $upstream_remote != upstream ]]; then
+      rad-red "Not force pushing to upstream '$upstream_remote'"
+      return 1
+    fi
   fi
 
   if [[ $branch_name == master ]]; then
