@@ -44,5 +44,12 @@ really-really-amend() {
     return 1
   fi
 
-  git add . && git-amend && git push -f ${upstream_remote:-origin} HEAD:$branch_name
+  git add .
+
+  # Amend commit if there were changes
+  if ! git diff-index --quiet HEAD --; then
+    git-amend
+  fi
+
+  git push -f ${upstream_remote} HEAD:$branch_name
 }
