@@ -13,10 +13,10 @@ alias drm="docker rm"
 alias drmi="docker rmi"
 alias dc="docker-compose"
 
-# Docker Helper commands.  Mostly useful for local development
+#### Docker Helper commands.  Mostly useful for local development
 
-# Show docker logs for a container matching a search string, or the most recently run
-# container if no search string is provided
+### dlogs - Show docker logs for a container matching a search string, or
+### the most recently run container if no search string is provided
 dlogs() {
   local container_info=$(dfirst "$@")
   container_info=$(echo $container_info | tr '\n' ' ')
@@ -28,30 +28,31 @@ dlogs() {
   docker logs -f $container_name
 }
 
-# Print SHAs of all docker containers
+### dall - Print SHAs of all docker containers
+### alias for `docker ps -aq`
 dall() {
   docker ps -aq
 }
 
-# Print info of most recently run docker container matching all search strings
-# Example: dfirst nginx test user1
-#
-# Add '-a' to search exited containers as well
-# Example: dfirst -a my_exited_container other_search_string
-#
-# Add '-q' to only print the container id
+### dfirst - Print info of most recently run docker container matching all search strings
+### Example: dfirst nginx test user1
+###
+### Add '-a' to search exited containers as well
+### Example: dfirst -a my_exited_container other_search_string
+###
+### Add '-q' to only print the container id
 dfirst() {
   dsearch "$@" | head -n 1
 }
 
-# Search running containers
-# Prints info for all containers matching the search string
-# Example: dsearch nginx test user1
-#
-# Add '-a' to search exited containers as well
-# Example: dsearch -a my_exited_container other_search_string
-#
-# Add '-q' to only print the container ids
+### Search running containers
+### Prints info for all containers matching the search string
+### Example: dsearch nginx test user1
+###
+### Add '-a' to search exited containers as well
+### Example: dsearch -a my_exited_container other_search_string
+###
+### Add '-q' to only print the container ids
 dsearch() {
   # Parse options
   while [[ $# -gt 0 ]]; do
@@ -100,10 +101,10 @@ dkill() {
   docker rm -fv `dfirst -q "$@"`
 }
 
-# Exec into the container matching the search strings
-# By default, it execs 'bash'
-# Use the -c option to change this, e.g. 'dexec service_name -c env'
-# Usage: 'dexec search_string_1 search_string_2 search_string_3'
+### dexec - Exec into the container matching the search strings
+### By default, it execs 'bash'
+### Use the -c option to change this, e.g. 'dexec service_name -c env'
+### Usage: 'dexec search_string_1 search_string_2 search_string_3'
 dexec() {
   # Parse options
   local search_strings=()
@@ -121,11 +122,21 @@ dexec() {
   docker exec -ti `dfirst -q $search_strings` $command
 }
 
-# Dhost is a utility for setting your docker host
-
+### dhost - a utility for setting your docker host
+###
+### Example: dhost local
+### results in `unset DOCKER_HOST`
+###
+### Example: dhost 10.42.120.22
+### results in DOCKER_HOST=tcp://10.52.87.126:2375
 typeset -Ax DHOST_ALIAS_MAP
 DHOST_ALIAS_MAP=()
 
+### dhost-alias - set an alias for dhost
+### call this in your ~/.zshrc
+###
+### Example: dhost-alias my-remote-docker 10.42.120.22:1234
+### Then, calling `dhost my-remote-docker` will set DOCKER_HOST=tcp://10.52.87.126:1234
 dhost-alias() {
   DHOST_ALIAS_MAP[$1]=$2
 }

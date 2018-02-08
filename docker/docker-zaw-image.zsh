@@ -1,5 +1,11 @@
 bindkey '^[<' zaw-rad-docker-image
 
+#### docker image zaw source
+###
+### provides a filterable list of your docker images
+###
+### key: option + shift + <
+
 function zaw-src-rad-docker-image() {
     title="$(docker images | head -n 1)"
     desc="$(docker images | tail +2)"

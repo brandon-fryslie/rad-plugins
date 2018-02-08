@@ -1,5 +1,11 @@
 bindkey '^[>' zaw-rad-docker-container
 
+#### docker container zaw source
+###
+### provides a filterable list of your docker containers
+###
+### key: option + shift + >
+
 function zaw-src-rad-docker-container() {
     local format_string="table {{ .Names }}\\t{{ .Image }}\\t{{ .Status }}\\t{{ .Ports }}\\t{{ .Size }}"
     local docker_ps_results="$(docker ps -a --format $format_string)"

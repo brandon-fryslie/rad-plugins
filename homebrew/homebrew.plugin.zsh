@@ -1,4 +1,8 @@
-# Plugin for ensuring homebrew is installed
+#### Plugin for Homebrew
+
+### macOS only
+### adds /usr/local/bin to your $PATH
+### Installs Homebrew if not already installed
 
 rad-install-homebrew() {
   rad-red "Installing Homebrew"

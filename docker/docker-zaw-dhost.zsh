@@ -1,5 +1,11 @@
 bindkey '^[H' zaw-rad-docker-dhost
 
+#### dhost zaw source
+###
+### provides a filterable list of your dhost aliases
+###
+### key: option + shift + H
+
 function zaw-src-rad-docker-dhost() {
     local title="docker hosts"
     : ${(A)candidates::=$(echo "${(v)DHOST_ALIAS_MAP}" | tr ' ' "\n")}
