@@ -1,6 +1,6 @@
-source "${0:a:h}/docker-zaw-container.zsh"
-source "${0:a:h}/docker-zaw-image.zsh"
-source "${0:a:h}/docker-zaw-dhost.zsh"
+source "${0:a:h}/docker-container-zaw.zsh"
+source "${0:a:h}/docker-image-zaw.zsh"
+source "${0:a:h}/docker-dhost-zaw.zsh"
 
 export PATH="$PATH:$(rad-realpath "${0:a:h}/bin")"
 

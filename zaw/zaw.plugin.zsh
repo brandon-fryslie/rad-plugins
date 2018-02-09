@@ -1,6 +1,6 @@
 # Configure Zaw
 
-source "${0:a:h}/zaw-proj.zsh"
+source "${0:a:h}/proj-zaw.zsh"
 
 # Installing FASD if necessary
 if [[ $(uname) == Darwin ]] && ! type 'fasd' &>/dev/null; then

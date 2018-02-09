@@ -1,8 +1,13 @@
 bindkey '^[D' zaw-rad-dev
 
+#### zaw source for interacting with rad-shell plugins
+
+### key binding: option + shift + D
+
+### Use this to view docs, edit a plugin, or view the source code of a plugin
 function zaw-src-rad-dev() {
     local format_string="table {{ .Names }}\\t{{ .Image }}\\t{{ .Status }}\\t{{ .Ports }}\\t{{ .Size }}"
-    local results="$(find ~/.zgen \( -wholename '*plugin.zsh' -o -wholename '*-zaw-*' \))"
+    local results="$(find ~/.zgen \( -wholename '*plugin.zsh' -o -wholename '*-zaw.zsh' \))"
 
     local title=$(printf '%-40s %-20s' "Repo" "Plugin")
     local desc="$(echo "$results" | perl -ne 'printf("%-40s %-20s\n", $1, $2) if m#^(?:.*/.zgen/)(?:git@[\w+\.-]+COLON-)?([\w\.@-]+/[\w\.-]+?)(?:.git)?(?:-master)?/.*?([\w.-]+\.zsh)$#g')"
