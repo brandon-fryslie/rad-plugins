@@ -7,7 +7,7 @@ bindkey '^[D' zaw-rad-dev
 ### Use this to view docs, edit a plugin, or view the source code of a plugin
 function zaw-src-rad-dev() {
     local format_string="table {{ .Names }}\\t{{ .Image }}\\t{{ .Status }}\\t{{ .Ports }}\\t{{ .Size }}"
-    local results="$(find ~/.zgen \( -wholename '*plugin.zsh' -o -wholename '*-zaw.zsh' \))"
+    local results="$(find ~/.zgen -wholename '*plugin.zsh' | grep -v brandon-fryslie/rad-shell)"
 
     local title=$(printf '%-40s %-20s' "Repo" "Plugin")
     local desc="$(echo "$results" | perl -ne 'printf("%-40s %-20s\n", $1, $2) if m#^(?:.*/.zgen/)(?:git@[\w+\.-]+COLON-)?([\w\.@-]+/[\w\.-]+?)(?:.git)?(?:-master)?/.*?([\w.-]+\.zsh)$#g')"
@@ -40,40 +40,58 @@ zaw-rad-dev-get-plugin-dir() {
 }
 
 ### zaw-src-dev-format-docs - formats & highlights the documentation in rad-shell plugins
-function zaw-src-dev-format-docs() {
+### Prints docs for the plugin and included files
+### Usage: rad-print-plugin-docs full-path-to-plugin
+### Usage: opt + shift + D -> Enter plugin name -> Press enter to view docs
+function rad-print-plugin-docs() {
+  local included_files=($(cat $1 | grep '^source' | sed 's#source "${0:a:h}/\(.*\)"$#\1#' | tr '\n' ' '))
+  local plugin_dir="$(dirname $1)"
+
+  rad-print-plugin-docs-single-file $1
+
+  for f in $included_files; do
+    echo
+    echo
+    rad-bold "Included: $(rad-cyan $f)"
+    rad-bold '-----'
+    rad-print-plugin-docs-single-file $plugin_dir/$f
+  done
+}
+
+function rad-print-plugin-docs-single-file() {
   cat $1 \
     | grep '^###\|^$' \
     | sed '/^$/N;/^\n$/D' \
     | sed '/./,$!d' \
     | perl -e "$(cat <<'EOF'
-  use strict; use warnings;
+use strict; use warnings;
 
-  sub colorize { my ($code, @str) = @_; return "\033[0;"."$code"."m".join(' ', @str)."\033[0m"; }
-  sub bold { colorize('1', @_); }
-  sub red { colorize('31', @_); }
-  sub green { colorize(32, @_); }
-  sub yellow { colorize(33, @_); }
-  sub magenta { colorize(35, @_); }
-  sub cyan { colorize(36, @_); }
+sub colorize { my ($code, @str) = @_; return "\033[0;"."$code"."m".join(' ', @str)."\033[0m"; }
+sub bold { colorize('1', @_); }
+sub red { colorize('31', @_); }
+sub green { colorize(32, @_); }
+sub yellow { colorize(33, @_); }
+sub magenta { colorize(35, @_); }
+sub cyan { colorize(36, @_); }
 
-  while(<>) {
-    # Command / alias definition
-    if (m/^###\s*(.*?) - (.+)$/) {
-      print cyan("\n$1\t").yellow("$2\n");
-    # Command / alias example
-    } elsif (m/^###\s*Example: (.*)$/) {
-      print magenta("\tExample: ").green("$1\n");
-    # Any other line
-    } elsif (m/^###\s+(.*)$/) {
-      print yellow("\t$1\n");
-    # Heading line
-    } elsif (m/^####\s+(.*)$/) {
-      print bold("$1\n");
-    # Empty line
-    } elsif (m/^$/) {
-      print "\n";
-    }
+while(<>) {
+  # Command / alias definition
+  if (m/^###\s*(.*?) - (.+)$/) {
+    print cyan("\n$1\t").yellow("$2\n");
+  # Command / alias example
+  } elsif (m/^###\s*Example: (.*)$/) {
+    print magenta("\tExample: ").green("$1\n");
+  # Any other line
+  } elsif (m/^###\s+(.*)$/) {
+    print yellow("\t$1\n");
+  # Heading line
+  } elsif (m/^####\s+(.*)$/) {
+    print bold("$1\n");
+  # Empty line
+  } elsif (m/^$/) {
+    print "\n";
   }
+}
 EOF
 )"
 }
@@ -85,7 +103,7 @@ function rad-log-tail() {
   tail -f $file
 }
 
-### rad-log-tail - print a message to the rad-shell log @ /tmp/zaw.log
+### rad-zaw-log - print a message to the rad-shell log @ /tmp/zaw.log
 function rad-zaw-log() {
   local file=/tmp/zaw.log
   echo $@ >> $file
@@ -93,7 +111,7 @@ function rad-zaw-log() {
 
 # Command functions
 function zaw-src-dev-doc() {
-    BUFFER="zaw-src-dev-format-docs $1"
+    BUFFER="rad-print-plugin-docs $1"
     zaw-rad-action ${reply[1]}
 }
 
