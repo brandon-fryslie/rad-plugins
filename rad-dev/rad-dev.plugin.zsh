@@ -1,4 +1,4 @@
-#### Plugin for developing rad-shell and rad-shell plugins
+#### plugin for interacting with rad-shell plugins
 source "${0:a:h}/rad-dev-zaw.zsh"
 
 ### e.rad - Open the rad-shell repository in your VISUAL editor

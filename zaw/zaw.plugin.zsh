@@ -1,3 +1,7 @@
+#### zaw: fast filterable lists for command line actions and data
+
+###
+
 # Configure Zaw
 
 source "${0:a:h}/proj-zaw.zsh"

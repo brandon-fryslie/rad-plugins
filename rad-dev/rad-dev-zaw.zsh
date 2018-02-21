@@ -53,14 +53,19 @@ function zaw-src-dev-format-docs() {
   sub cyan { colorize(36, @_); }
 
   while(<>) {
-    if (m/^###\s*(\w+[\w\s]*) - (.+)$/) {
+    # Command / alias definition
+    if (m/^###\s*(.*?) - (.+)$/) {
       print cyan("\n$1\t").yellow("$2\n");
+    # Command / alias example
     } elsif (m/^###\s*Example: (.*)$/) {
       print magenta("\tExample: ").green("$1\n");
+    # Any other line
     } elsif (m/^###\s+(.*)$/) {
       print yellow("\t$1\n");
+    # Heading line
     } elsif (m/^####\s+(.*)$/) {
       print bold("$1\n");
+    # Empty line
     } elsif (m/^$/) {
       print "\n";
     }
@@ -69,12 +74,14 @@ EOF
 )"
 }
 
+### rad-log-tail - tail the rad-shell log located @ /tmp/zaw.log
 function rad-log-tail() {
   local file=/tmp/zaw.log
   touch $file
   tail -f $file
 }
 
+### rad-log-tail - print a message to the rad-shell log @ /tmp/zaw.log
 function rad-zaw-log() {
   local file=/tmp/zaw.log
   echo $@ >> $file
@@ -82,13 +89,6 @@ function rad-zaw-log() {
 
 # Command functions
 function zaw-src-dev-doc() {
-    rad-zaw-log "Triggering docs"
-    # doc_string="$(cat /Users/brandon.fryslie/.zgen/brandon-fryslie/rad-plugins-master/docker/docker.plugin.zsh | grep '^###' | sed 's/^###//')"
-
-    # rad-zaw-log $doc_string
-
-
-
     BUFFER="zaw-src-dev-format-docs $1"
     zaw-rad-action ${reply[1]}
 }
