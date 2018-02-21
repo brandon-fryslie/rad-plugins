@@ -27,7 +27,6 @@ zstyle ':filter-select:highlight' marked bg=blue
 # Key bindings
 bindkey '^[Z' zaw
 bindkey '^R^R' zaw-history
-bindkey '^[B' zaw-git-branches
 bindkey '^[O' zaw-git-files
 bindkey '^[L' zaw-git-log
 bindkey '^[R' zaw-git-reflog

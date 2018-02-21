@@ -1,5 +1,6 @@
 source "${0:a:h}/git-zaw.zsh"
 source "${0:a:h}/git-status-zaw.zsh"
+source "${0:a:h}/git-branch-zaw.zsh"
 
 export PATH="$PATH:$(rad-realpath "${0:a:h}/bin")"
 
