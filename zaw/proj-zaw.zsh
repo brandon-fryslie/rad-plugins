@@ -40,4 +40,8 @@ function zaw-rad-proj-cd-edit() {
     zaw-rad-buffer-action "proj $1 && ${VISUAL:-${EDITOR:-vi}} ."
 }
 
+function zaw-rad-proj-github-open() {
+    zaw-rad-buffer-action "gh-open origin $PROJECTS_DIR/bats"
+}
+
 zaw-register-src -n rad-proj zaw-src-rad-proj

@@ -41,7 +41,11 @@ zaw-rad-dev-get-plugin-dir() {
 
 ### zaw-src-dev-format-docs - formats & highlights the documentation in rad-shell plugins
 function zaw-src-dev-format-docs() {
-  cat $1 | grep '^###\|^$' | sed '/^$/N;/^\n$/D' | sed '/./,$!d' | perl -e "$(cat <<'EOF'
+  cat $1 \
+    | grep '^###\|^$' \
+    | sed '/^$/N;/^\n$/D' \
+    | sed '/./,$!d' \
+    | perl -e "$(cat <<'EOF'
   use strict; use warnings;
 
   sub colorize { my ($code, @str) = @_; return "\033[0;"."$code"."m".join(' ', @str)."\033[0m"; }

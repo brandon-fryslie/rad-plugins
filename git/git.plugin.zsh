@@ -53,3 +53,19 @@ really-really-amend() {
 
   git push -f ${upstream_remote} HEAD:$branch_name
 }
+
+### gh-open - open the current directory repo & branch on github
+### Constructs the URL for your current repo and branch and opens the URL
+function gh-open() {
+  local remote_name="${1:-origin}"
+  local repo_dir="${2:-`pwd`}"
+  local branch_name="$(git -C ${repo_dir} rev-parse --abbrev-ref HEAD)"
+
+  remote_url="$(git -C ${repo_dir} config --local remote.${remote_name}.url)"
+
+  [[ -z $remote_url ]] && { rad-red "gh-open: cannot find remote $remote_name"; return; }
+
+  github_base_url="http://$(echo $remote_url | perl -ne 'if (m/(git|ssh|https?|git@[-\w.]+):(\/\/)?(.*?)(\.git)(\/?|\#[-\d\w._]+?)$/) { $repo = $3; ($domain = $1) =~ s/git@//; print "$domain/$repo"; }')"
+
+  open "$github_base_url/tree/${branch_name}"
+}
