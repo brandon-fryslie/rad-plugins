@@ -13,7 +13,7 @@ function zaw-src-git-branch() {
     local desc="$(git for-each-ref --sort=-committerdate refs/heads/ --format='%(HEAD) %(refname:short) - %(objectname:short) - %(contents:subject) - %(authorname) (%(committerdate:relative))')"
 
     local title=$(git branches)
-    local cands="$(echo "$desc" | sed 's/^\*//' | awk '{print $3}')"
+    local cands="$(echo "$desc" | sed 's/^\*//')"
 
     : ${(A)candidates::=${(f)cands}}
     : ${(A)cand_descriptions::=${(f)desc}}
@@ -30,14 +30,24 @@ function zaw-src-git-branch() {
     options=(-t "$title")
 }
 
+# Get the branch name from the candidate string
+function zaw-git-branch-get-branchname() {
+  echo $1 | awk '{print $1}'
+}
+
+# Get the branch shorthash from the candidate string
+function zaw-git-branch-get-shorthash() {
+  echo $1 | awk '{print $3}'
+}
+
 # Command functions
 function zaw-src-git-branch-checkout() {
-    BUFFER="git checkout $1"
+    BUFFER="git checkout $(zaw-git-branch-get-branchname $1)"
     zaw-rad-action ${reply[1]}
 }
 
 function zaw-src-git-branch-reset-hard() {
-    BUFFER="git reset --hard $1"
+    BUFFER="git reset --hard $(zaw-git-branch-get-branchname $1)"
     zaw-rad-action ${reply[1]}
 }
 

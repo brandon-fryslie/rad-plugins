@@ -70,3 +70,6 @@ function gh-open() {
 
   open "$github_base_url/tree/${branch_name}"
 }
+
+### Testing this out: opt+shift+o x2 for gh-open
+#bindkey '^[O^[O' gh-open
