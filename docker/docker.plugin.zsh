@@ -130,7 +130,7 @@ dexec() {
 ### Example: dhost 10.42.120.22
 ### results in DOCKER_HOST=tcp://10.52.87.126:2375
 typeset -Ax DHOST_ALIAS_MAP
-DHOST_ALIAS_MAP=()
+DHOST_ALIAS_MAP=(local local)
 
 ### dhost-alias - set an alias for dhost
 ### call this in your ~/.zshrc
