@@ -41,7 +41,7 @@ function zaw-rad-proj-cd-edit() {
 }
 
 function zaw-rad-proj-github-open() {
-    zaw-rad-buffer-action "gh-open origin $PROJECTS_DIR/bats"
+    zaw-rad-buffer-action "gh-open origin $PROJECTS_DIR/$1"
 }
 
 zaw-register-src -n rad-proj zaw-src-rad-proj
