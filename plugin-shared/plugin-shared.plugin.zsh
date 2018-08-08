@@ -19,3 +19,9 @@ rad-bold() { echo -e "$(rad-colorize 1 "$@")"; }
 rad-red() { echo -e "$(rad-colorize '1;31' "$@")"; }
 rad-green() { echo -e "$(rad-colorize 32 "$@")"; }
 rad-yellow() { echo -e "$(rad-colorize 33 "$@")"; }
+
+rad-yellow "!!!!!!!!!!!!!!!!!!!!!!!!!"
+rad-yellow "THIS PLUGIN IS DEPRECATED (plugin-shared.plugin.zsh)"
+rad-yellow "Please upgrade rad-shell by backing up your .zshrc"
+rad-yellow "And reinstalling rad-shell"
+rad-yellow "!!!!!!!!!!!!!!!!!!!!!!!!!"
