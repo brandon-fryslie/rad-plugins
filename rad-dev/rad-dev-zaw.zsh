@@ -7,7 +7,7 @@ bindkey '^[D' zaw-rad-dev
 ### Use this to view docs, edit a plugin, or view the source code of a plugin
 function zaw-src-rad-dev() {
     local format_string="table {{ .Names }}\\t{{ .Image }}\\t{{ .Status }}\\t{{ .Ports }}\\t{{ .Size }}"
-    local results="$(find ~/.zgen -wholename '*plugin.zsh' | grep -v brandon-fryslie/rad-shell)"
+    local results="$(find ~/.zgen -wholename '*plugin.zsh' -not -path "*/*oh-my-zsh*/*" -not -path "*/*zsh-users*/*" -not -path "*/*prezto*/*"  -not -path "*/*zsh-syntax-highlighting*/*" | grep -v brandon-fryslie/rad-shell)"
 
     local title=$(printf '%-40s %-20s' "Repo" "Plugin")
     local desc="$(echo "$results" | perl -ne 'printf("%-40s %-20s\n", $1, $2) if m#^(?:.*/.zgen/)(?:git@[\w+\.-]+COLON-)?([\w\.@-]+/[\w\.-]+?)(?:.git)?(?:-master)?/.*?([\w.-]+\.zsh)$#g')"
