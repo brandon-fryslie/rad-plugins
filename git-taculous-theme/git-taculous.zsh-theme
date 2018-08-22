@@ -15,6 +15,8 @@ zstyle ':vcs_info:git*' actionformats "(%s|%F{white}%a%F{black}%B) %12.12i %c%u 
 
 add-zsh-hook precmd theme_precmd
 
+[[ $GITTACULOUS_ENABLE_SSH_THEME == 'true' || -n $SSH_CLIENT ]] && GITTACULOUS_ENABLE_SSH_THEME=true || GITTACULOUS_ENABLE_SSH_THEME=false
+
 # Show remote ref name and number of commits ahead-of or behind
 function +vi-git-st() {
     local ahead behind remote
@@ -70,15 +72,34 @@ function _get-node-prompt() {
     echo -n "%F{green}⬢ ${node_prompt} %F{yellow}npm ${npm_prompt} %F{default}"
 }
 
+function _get-current-dir-prompt() {
+    local infoline
+    local dir_color
+
+    # If we're in an SSH client, prepend the user and machine
+    if [[ $GITTACULOUS_ENABLE_SSH_THEME == 'true' ]]; then
+        # Current dir; show in yellow if not writable
+        [[ -w $PWD ]] && dir_color="%F{green}" || dir_color="%F{yellow}"
+        infoline="%F{black}%B(%n@%m)%F{default}%b ${dir_color}(${PWD/#$HOME/~})%F{default} "
+    else
+        # Current dir; show in yellow if not writable
+#        [[ -w $PWD ]] && infoline+=( "%F{green}" ) || infoline+=( "%F{yellow}" )
+        infoline="(${PWD/#$HOME/~})%F{default} "
+    fi
+
+    echo -n "${infoline}"
+}
+
+
 function setprompt() {
     unsetopt shwordsplit
     local -a lines infoline
-    local x i filler i_width
+    local x i filler i_width filler_color
 
     ### First, assemble the top line
     # Current dir; show in yellow if not writable
     [[ -w $PWD ]] && infoline+=( "%F{green}" ) || infoline+=( "%F{yellow}" )
-    infoline+=( "(${PWD/#$HOME/~})%F{default} " )
+    infoline+=( "$(_get-current-dir-prompt)" )
 
     if [[ $ENABLE_DOCKER_PROMPT == 'true' ]]; then
         infoline+=( "$(_get-docker-prompt)" )
@@ -91,13 +112,14 @@ function setprompt() {
     fi
 
     # Username & host
-    infoline+=( "%F{black}%B(%n)%F{default}%b" )
-    [[ -n $SSH_CLIENT ]] && infoline+=( "@%m" )
+    [[ $GITTACULOUS_ENABLE_SSH_THEME != 'true' ]] && infoline+=( "%F{black}%B(%n)%F{default}%b" ) || infoline+=( "" )
 
     i_width=${(S)infoline//(\%F\{*\}|\%b|\%B)} # search-and-replace color escapes
     i_width=${#${(%)i_width}} # expand all escapes and count the chars
 
-    filler="%F{black}%B${(l:$(( $COLUMNS - $i_width ))::-:)}%F{default}%b"
+    [[ $GITTACULOUS_ENABLE_SSH_THEME == 'true' ]] && filler_color="%F{23}" || filler_color="%F{black}"
+
+    filler="${filler_color}%B${(l:$(( $COLUMNS - $i_width ))::-:)}%F{default}%b"
     infoline[2]=( "${infoline[2]}${filler} " )
 
     ### Now, assemble all prompt lines
