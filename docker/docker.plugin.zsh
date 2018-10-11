@@ -45,23 +45,31 @@ dfirst() {
   dsearch "$@" | head -n 1
 }
 
-### Search running containers
+### Search running containers or images
 ### Prints info for all containers matching the search string
 ### Example: dsearch nginx test user1
 ###
 ### Add '-a' to search exited containers as well
 ### Example: dsearch -a my_exited_container other_search_string
 ###
+### Add '-i' to search images
+### Example: dsearch -i my_image other_search_string
+###
 ### Add '-q' to only print the container ids
 dsearch() {
+  # Default options
+  local SEARCH_CONTAINERS=true
+
   # Parse options
   while [[ $# -gt 0 ]]; do
     key="$1"
 
     case $key in
-      -a) local ALL_IMAGES=-a; shift;;
+      -a) local ALL_CONTAINERS=-a; shift;;
+      -i) local SEARCH_IMAGES=true; shift;;
+      -c) SEARCH_CONTAINERS=true; shift;;
       -q) local QUIET=true; shift;;
-      -aq|-qa) local QUIET=true; local ALL_IMAGES=-a; shift;;
+      -aq|-qa) local QUIET=true; local ALL_CONTAINERS=-a; shift;;
       -d) local DEBUG=true; shift;;
       -*) rad-red "Unknown option: $1"; return 1;;
       *)
@@ -69,18 +77,22 @@ dsearch() {
         if [[ -z $search_string ]]; then
           local search_string="grep $1"; shift
         else
-          search_string="$search_string | grep $1"; shift
+          local search_string="$search_string | grep $1"; shift
         fi
       ;;
     esac
   done
 
-  # General command
-  local cmd="docker ps $ALL_IMAGES --format '{{.ID}} {{.Image}} {{.Names}} {{.Ports}}'"
+  # Docker command
+  if [[ $SEARCH_IMAGES == 'true' ]]; then
+    local cmd="docker images --format '{{.ID}} {{.Repository}} {{.Tag}}'"
+  else
+    local cmd="docker ps ${ALL_CONTAINERS} --format '{{.ID}} {{.Image}} {{.Names}} {{.Ports}}'"
+  fi
 
   # If we have a search string, append it
   if [[ ! -z $search_string ]]; then
-    cmd="$cmd | $search_string"
+    cmd="${cmd} | ${search_string}"
   fi
 
   # If quiet mode is on, only print container IDs
@@ -88,10 +100,10 @@ dsearch() {
 
   if [[ $DEBUG == true ]]; then
     rad-yellow "DEBUG MODE ON"
-    rad-yellow "ALL_IMAGES: $ALL_IMAGES"
-    rad-yellow "QUIET: $QUIET"
-    rad-yellow "search string: $search_string"
-    rad-yellow "running command: $cmd"
+    rad-yellow "ALL_CONTAINERS: ${ALL_CONTAINERS}"
+    rad-yellow "QUIET: ${QUIET}"
+    rad-yellow "search string: ${search_string}"
+    rad-yellow "running command: ${cmd}"
   fi
 
   eval "$cmd"
