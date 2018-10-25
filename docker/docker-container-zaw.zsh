@@ -70,7 +70,7 @@ function zaw-src-docker-container-port() {
 function zaw-src-docker-container-inspect() {
     # use jq if we have it
     local jq=''
-    [[ (( $+commands[jq] )) ]] && jq="| jq"
+    type jq > /dev/null && jq="| jq"
 
     zaw-rad-buffer-action "docker inspect $1 $jq"
 }
