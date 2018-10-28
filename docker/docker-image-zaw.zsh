@@ -8,7 +8,7 @@ bindkey '^[<' zaw-rad-docker-image
 
 function zaw-src-rad-docker-image() {
     title="$(docker images | head -n 1)"
-    desc="$(docker images | tail +2)"
+    desc="$(docker images | tail -n +2)"
     : ${(A)candidates::=${(f)desc}}
     actions=(\
         zaw-rad-docker-image-run \
