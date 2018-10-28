@@ -15,19 +15,6 @@ alias dc="docker-compose"
 
 #### Docker Helper commands.  Mostly useful for local development
 
-### dlogs - Show docker logs for a container matching a search string, or
-### the most recently run container if no search string is provided
-dlogs() {
-  local container_info=$(dfirst "$@")
-  container_info=$(echo $container_info | tr '\n' ' ')
-  [[ $container_info =~ "^[[:space:]]+$" ]] && { rad-red "Error: no container found matching query string '$@'"; return 1}
-
-  container_image=$(echo $container_info | awk '{print $2}')
-  container_name=$(echo $container_info | awk '{print $3}')
-  rad-yellow "Showing logs of container $container_name running image $container_image..."
-  docker logs -f $container_name
-}
-
 ### dall - Print SHAs of all docker containers
 ### alias for `docker ps -aq`
 dall() {
@@ -107,6 +94,21 @@ dsearch() {
   fi
 
   eval "$cmd"
+}
+
+### dlogs - Show docker logs for a container matching a search string, or
+### the most recently run container if no search string is provided
+dlogs() {
+  local container_info
+  container_info=$(dfirst "$@")
+
+  container_info=$(echo $container_info | tr '\n' ' ')
+  [[ $container_info =~ "^[[:space:]]+$" ]] && { rad-red "Error: no container found matching query string '$@'"; return 1}
+
+  container_image=$(echo $container_info | awk '{print $2}')
+  container_name=$(echo $container_info | awk '{print $3}')
+  rad-yellow "Showing logs of container $container_name running image $container_image..."
+  docker logs -f $container_name
 }
 
 dkill() {
