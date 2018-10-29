@@ -7,10 +7,11 @@ bindkey '^[>' zaw-rad-docker-container
 ### key: option + shift + >
 
 function zaw-src-rad-docker-container() {
-    local docker_ps_results="$(docker ps -a)"
+    local format_string="table {{ .Names }}\\t{{ .Image }}\\t{{ .Status }}\\t{{ .Ports }}\\t{{ .ID }}"
+    local docker_ps_results="$(docker ps -a --format $format_string)"
     local title="$(echo $docker_ps_results | head -n 1)"
     local desc="$(echo $docker_ps_results | tail -n +2)"
-    local container_name="$(echo $desc | awk '{print $2}')"
+    local container_name="$(echo $desc | awk '{print $1}')"
     : ${(A)candidates::=${(f)container_name}}
     : ${(A)cand_descriptions::=${(f)desc}}
     actions=(\
