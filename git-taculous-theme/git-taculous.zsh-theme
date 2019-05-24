@@ -1,6 +1,8 @@
 autoload -U add-zsh-hook
 autoload -Uz vcs_info
 
+source "/usr/local/opt/kube-ps1/share/kube-ps1.sh"
+
 setopt promptsubst
 
 zstyle ':vcs_info:*' enable git svn
@@ -56,22 +58,6 @@ function +vi-git-username() {
     hook_com[misc]+=" ($username)"
 }
 
-function _get-docker-prompt() {
-    local docker_prompt
-    docker_prompt=$DOCKER_HOST
-    [[ "${docker_prompt}x" == "x" ]] && docker_prompt="unset"
-    echo -n "%F{cyan}🐳  ${docker_prompt} %F{default}"
-}
-
-function _get-node-prompt() {
-    local node_prompt npm_prompt
-    node_prompt=$(node -v 2>/dev/null)
-    npm_prompt="v$(\npm -v 2>/dev/null)"
-    [[ "${node_prompt}x" == "x" ]] && node_prompt="none"
-    [[ "${npm_prompt}x" == "vx" ]] && npm_prompt="none"
-    echo -n "%F{green}⬢ ${node_prompt} %F{yellow}npm ${npm_prompt} %F{default}"
-}
-
 function _get-current-dir-prompt() {
     local infoline
     local dir_color
@@ -90,7 +76,6 @@ function _get-current-dir-prompt() {
     echo -n "${infoline}"
 }
 
-
 function setprompt() {
     unsetopt shwordsplit
     local -a lines infoline
@@ -101,15 +86,9 @@ function setprompt() {
     [[ -w $PWD ]] && infoline+=( "%F{green}" ) || infoline+=( "%F{yellow}" )
     infoline+=( "$(_get-current-dir-prompt)" )
 
-    if [[ $ENABLE_DOCKER_PROMPT == 'true' ]]; then
-        infoline+=( "$(_get-docker-prompt)" )
-    fi
 
-    if [[ $ENABLE_NODE_PROMPT == 'true' ]] \
-        || [[ $LAZY_NODE_PROMPT == 'true' ]] \
-        && zstyle -t ':nvm-lazy-load' nvm-loaded 'yes'; then
-            infoline+=( "$(_get-node-prompt)" )
-    fi
+    infoline+=( "$(kube_ps1)%F{default}" )
+
 
     # Username & host
     [[ $GITTACULOUS_ENABLE_SSH_THEME != 'true' ]] && infoline+=( "%F{black}%B(%n)%F{default}%b" ) || infoline+=( "" )
