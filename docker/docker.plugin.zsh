@@ -231,6 +231,3 @@ _dhost_completion() {
 
 compctl -K _dhost_completion dhost
 # /Dhost
-
-# Enable Docker Prompt
-export ENABLE_DOCKER_PROMPT=true
