@@ -76,6 +76,11 @@ function _get-current-dir-prompt() {
     echo -n "${infoline}"
 }
 
+function _get-k8s-prompt() {
+    echo -n "$(kube_ps1) %F{default}"
+}
+
+
 function setprompt() {
     unsetopt shwordsplit
     local -a lines infoline
@@ -86,8 +91,9 @@ function setprompt() {
     [[ -w $PWD ]] && infoline+=( "%F{green}" ) || infoline+=( "%F{yellow}" )
     infoline+=( "$(_get-current-dir-prompt)" )
 
-
-    infoline+=( "$(kube_ps1)%F{default}" )
+    if [[ $ENABLE_K8S_PROMPT == 'true' ]]; then
+        infoline+=( "$(_get-k8s-prompt)" )
+    fi
 
 
     # Username & host
