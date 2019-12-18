@@ -1,8 +1,12 @@
-source "${0:a:h}/docker-container-zaw.zsh"
-source "${0:a:h}/docker-image-zaw.zsh"
-source "${0:a:h}/docker-dhost-zaw.zsh"
+script_dir=$(dirname -- "$0")
 
-export PATH="$PATH:$(rad-realpath "${0:a:h}/bin")"
+if [[ -n "$ZSH_VERSION" ]]; then
+  [[ -f "${script_dir}/docker-container-zaw.zsh" ]] && source "${script_dir}/docker-container-zaw.zsh"
+  [[ -f "${script_dir}/docker-image-zaw.zsh" ]] && source "${script_dir}/docker-image-zaw.zsh"
+  [[ -f "${script_dir}/docker-dhost-zaw.zsh" ]] && source "${script_dir}/docker-dhost-zaw.zsh"
+fi
+
+export PATH="$PATH:$(rad-realpath "${script_dir}/bin")"
 
 alias ds="docker status"
 alias di="docker images"

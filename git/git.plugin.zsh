@@ -1,8 +1,12 @@
-source "${0:a:h}/git-zaw.zsh"
-source "${0:a:h}/git-status-zaw.zsh"
-source "${0:a:h}/git-branch-zaw.zsh"
+script_dir=$(dirname -- "$0")
 
-export PATH="$PATH:$(rad-realpath "${0:a:h}/bin")"
+if [[ -n "$ZSH_VERSION" ]]; then
+  [[ -f "${script_dir}/git-zaw.zsh" ]] && source "${script_dir}/git-zaw.zsh"
+  [[ -f "${script_dir}/git-status-zaw.zsh" ]] && source "${script_dir}/git-status-zaw.zsh"
+  [[ -f "${script_dir}/git-branch-zaw.zsh" ]] && source "${script_dir}/git-branch-zaw.zsh"
+fi
+
+export PATH="$PATH:$(rad-realpath "${script_dir}/bin")"
 
 alias gb="git for-each-ref --sort=committerdate refs/heads/ --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(color:red)%(objectname:short)%(color:reset) - %(contents:subject) - %(authorname) (%(color:green)%(committerdate:relative)%(color:reset))'"
 alias gd="git diff"
