@@ -7,7 +7,17 @@ if [[ -n "$ZSH_VERSION" ]]; then
   [[ -f "${script_dir}/git-branch-zaw.zsh" ]] && source "${script_dir}/git-branch-zaw.zsh"
 fi
 
-[[ -d "${script_dir}/bin" ]] && export PATH="$PATH:$(rad-realpath "${script_dir}/bin")"
+rad_plugin_init_hooks+=("rad_git_plugin_init_hook:${script_dir}")
+
+rad_git_plugin_init_hook() {
+  local script_dir=$1
+  [[ -d "${script_dir}/bin" ]] && export PATH="$PATH:$(rad-realpath "${script_dir}/bin")"
+  export GIT_EDITOR="$(rad-get-editor)"
+
+  if type 'hub' &>/dev/null; then
+    alias git=hub
+  fi
+}
 
 alias gb="git for-each-ref --sort=committerdate refs/heads/ --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(color:red)%(objectname:short)%(color:reset) - %(contents:subject) - %(authorname) (%(color:green)%(committerdate:relative)%(color:reset))'"
 alias gd="git diff"
@@ -21,12 +31,6 @@ alias lg="git log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%
 git config --global alias.co checkout
 git config --global alias.st status
 alias gdstat="git diff --stat"
-
-if type 'hub' &>/dev/null; then
-  alias git=hub
-fi
-
-export GIT_EDITOR="$(rad-get-editor)"
 
 really-really-amend() {
   local branch_name="$(git rev-parse --abbrev-ref HEAD)"
