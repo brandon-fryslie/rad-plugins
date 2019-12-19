@@ -1,12 +1,18 @@
-script_dir=$(dirname -- "$0")
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [[ -n "$ZSH_VERSION" ]]; then
+  script_dir="${0:a:h}"
   [[ -f "${script_dir}/docker-container-zaw.zsh" ]] && source "${script_dir}/docker-container-zaw.zsh"
   [[ -f "${script_dir}/docker-image-zaw.zsh" ]] && source "${script_dir}/docker-image-zaw.zsh"
   [[ -f "${script_dir}/docker-dhost-zaw.zsh" ]] && source "${script_dir}/docker-dhost-zaw.zsh"
 fi
 
-export PATH="$PATH:$(rad-realpath "${script_dir}/bin")"
+rad_plugin_init_hooks+=("rad_docker_plugin_init_hook:${script_dir}")
+
+rad_docker_plugin_init_hook() {
+  local script_dir=$1
+  [[ -d "${script_dir}/bin" ]] && export PATH="$PATH:$(rad-realpath "${script_dir}/bin")"
+}
 
 alias ds="docker status"
 alias di="docker images"
@@ -107,7 +113,7 @@ dlogs() {
   container_info=$(dfirst "$@")
 
   container_info=$(echo $container_info | tr '\n' ' ')
-  [[ $container_info =~ "^[[:space:]]+$" ]] && { rad-red "Error: no container found matching query string '$@'"; return 1}
+  [[ $container_info =~ ^[[:space:]]+$ ]] && { rad-red "Error: no container found matching query string '$*'"; return 1; }
 
   container_image=$(echo $container_info | awk '{print $2}')
   container_name=$(echo $container_info | awk '{print $3}')
@@ -147,6 +153,7 @@ dexec() {
 ###
 ### Example: dhost 10.42.120.22
 ### results in DOCKER_HOST=tcp://10.52.87.126:2375
+if [[ -n $ZSH_VERSION ]]; then
 typeset -Ax DHOST_ALIAS_MAP
 DHOST_ALIAS_MAP=(local local)
 
@@ -201,13 +208,6 @@ dhost() {
 _dhost_completion() {
   local hist_list host include_pattern=${DHOST_INCLUDE_PATTERN}
 
-  # Complete from SSH Hosts
-  _dhost_ssh_host_list=$(echo ${${${${${(f)"$(cat {/etc/ssh_,~/.ssh/known_}hosts(|2)(N) 2>/dev/null)"}%%[#| ]*}//\]:[0-9]*/ }//,/ }//\[/ } | tr ' ' '\n' | sort | uniq)
-
-  if [[ ! -z $include_pattern ]]; then
-    _dhost_ssh_host_list=$(echo $_dhost_ssh_host_list | grep $include_pattern)
-  fi
-
   # Complete from history
   _dhost_hist_completions=()
   hist_list=$(history 1 | grep "DOCKER_HOST=tcp")
@@ -227,7 +227,6 @@ _dhost_completion() {
   fi
 
   reply=(
-    ${=_dhost_ssh_host_list}
     ${=_dhost_hist_completions}
     ${=_dhost_host_map_completions}
   )
@@ -235,3 +234,4 @@ _dhost_completion() {
 
 compctl -K _dhost_completion dhost
 # /Dhost
+fi # / [[ -n $ZSH_VERSION ]]
