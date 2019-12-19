@@ -17,6 +17,11 @@ rad_git_plugin_init_hook() {
   if type 'hub' &>/dev/null; then
     alias git=hub
   fi
+
+  if type 'git' &>/dev/null; then
+    git config --global alias.co checkout
+    git config --global alias.st status
+  fi
 }
 
 alias gb="git for-each-ref --sort=committerdate refs/heads/ --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(color:red)%(objectname:short)%(color:reset) - %(contents:subject) - %(authorname) (%(color:green)%(committerdate:relative)%(color:reset))'"
@@ -28,8 +33,6 @@ alias gs="git status"
 alias gst="git stash"
 alias lg="git log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%C(bold blue)<%an>%Creset' --abbrev-commit"
 
-git config --global alias.co checkout
-git config --global alias.st status
 alias gdstat="git diff --stat"
 
 really-really-amend() {
