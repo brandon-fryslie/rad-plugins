@@ -36,7 +36,7 @@ set -o hist_ignore_all_dups
 set -o hist_ignore_space
 set -o hist_reduce_blanks
 set -o hist_verify
-set -o inc_append_history
+set +o inc_append_history # Apparently this should be off if share_history is turned on
 set -o share_history
 set +o noclobber # Allow overwriting of files by redirection (many scripts assume this behavior)
 
