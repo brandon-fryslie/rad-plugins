@@ -1,10 +1,9 @@
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [[ -n "$ZSH_VERSION" ]]; then
-  script_dir="${0:a:h}"
-  [[ -f "${0:a:h}/git-zaw.zsh" ]] && source "${script_dir}/git-zaw.zsh"
-  [[ -f "${script_dir}/git-status-zaw.zsh" ]] && source "${script_dir}/git-status-zaw.zsh"
-  [[ -f "${script_dir}/git-branch-zaw.zsh" ]] && source "${script_dir}/git-branch-zaw.zsh"
+  [[ -f "${0:a:h}/git-zaw.zsh" ]] && source "${0:a:h}/git-zaw.zsh"
+  [[ -f "${0:a:h}/git-status-zaw.zsh" ]] && source "${0:a:h}/git-status-zaw.zsh"
+  [[ -f "${0:a:h}/git-branch-zaw.zsh" ]] && source "${0:a:h}/git-branch-zaw.zsh"
 fi
 
 rad_plugin_init_hooks+=("rad_git_plugin_init_hook:${script_dir}")

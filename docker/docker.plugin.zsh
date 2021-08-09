@@ -1,10 +1,9 @@
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [[ -n "$ZSH_VERSION" ]]; then
-  script_dir="${0:a:h}"
-  [[ -f "${script_dir}/docker-container-zaw.zsh" ]] && source "${script_dir}/docker-container-zaw.zsh"
-  [[ -f "${script_dir}/docker-image-zaw.zsh" ]] && source "${script_dir}/docker-image-zaw.zsh"
-  [[ -f "${script_dir}/docker-dhost-zaw.zsh" ]] && source "${script_dir}/docker-dhost-zaw.zsh"
+  [[ -f "${0:a:h}/docker-container-zaw.zsh" ]] && source "${0:a:h}/docker-container-zaw.zsh"
+  [[ -f "${0:a:h}/docker-image-zaw.zsh" ]] && source "${0:a:h}/docker-image-zaw.zsh"
+  [[ -f "${0:a:h}/docker-dhost-zaw.zsh" ]] && source "${0:a:h}/docker-dhost-zaw.zsh"
 fi
 
 rad_plugin_init_hooks+=("rad_docker_plugin_init_hook:${script_dir}")

@@ -43,7 +43,7 @@ zaw-rad-dev-get-plugin-dir() {
 ### Usage: rad-print-plugin-docs full-path-to-plugin
 ### Usage: opt + shift + D -> Enter plugin name -> Press enter to view docs
 function rad-print-plugin-docs() {
-  local included_files=($(cat $1 | grep '^source' | sed 's#source "${0:a:h}/\(.*\)"$#\1#' | tr '\n' ' '))
+  local included_files=($(cat $1 | grep 'source' | sed 's#^\(.*\)source "${0:a:h}/\(.*\)"$#\2#' | tr '\n' ' '))
   local plugin_dir="$(dirname $1)"
 
   rad-print-plugin-docs-single-file $1
