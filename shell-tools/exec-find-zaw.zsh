@@ -1,17 +1,17 @@
 bindkey '^[E' zaw-rad-exec-find
 
-#### zaw source for the 'proj' command
+#### zaw source for the 'exec-find' command
 
-### proj - allows you to easily navigate your projects
-### brings up a filterable list of directories in PROJECT_DIR
-### set the PROJECT_DIR environment variable to use proj
+### exec-find - find all executable files in the current directory
 ### Press 'enter' or 'tab' to choose an action
 
 ### key binding: option + shift + E
 
-### action cd: change to directory
-### action cd + edit: change to directory and open in your defined editor
-### action open on github: open the repo on github
+### action run: run executable
+### action cd + run: change to directory and run executable
+### action cd + edit file: change to directory and edit file
+### action cd to repo + edit repo: change to repo directory and edit repo
+### action append to buffer: append file path to buffer
 function zaw-src-rad-exec-find() {
     local title="executable files"
     : ${(A)candidates::=$(find . -perm -u=x -not -path "./.*/*" -type f)}
