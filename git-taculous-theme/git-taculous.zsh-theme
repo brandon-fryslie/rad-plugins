@@ -63,6 +63,27 @@ function _get-docker-prompt() {
     echo -n "%F{cyan}🐳  ${docker_prompt} %F{default}"
 }
 
+function _get-scylla-prompt() {
+    local scylla_prompt
+    # TODO: if KUBECONFIG is set, show that value
+    # if KUBECONFIG is not set, look at ~/.kube/config to see if its a symlink
+    if [[ -n $KUBECONFIG ]]; then
+      # if KUBECONFIG env var is set, get the name from that
+      scylla_prompt="$(dirname $KUBECONFIG)"
+      scylla_prompt="$(basename $scylla_prompt)"
+    elif [[ -L ~/.kube/config ]]; then
+      # if we have a symlink use that
+      local kubeconfig_link_path="$(perl -le 'print readlink($ENV{"HOME"} . "/.kube/config")')"
+      scylla_prompt="$(dirname $kubeconfig_link_path)"
+      scylla_prompt="$(basename $scylla_prompt)"
+    else
+      scylla_prompt="none"
+    fi
+
+    # zsh colors: https://unix.stackexchange.com/questions/124407/what-color-codes-can-i-use-in-my-ps1-prompt/124409#124409
+    echo -n "%F{009}🐙  (${scylla_prompt}) %F{default}"
+}
+
 function _get-node-prompt() {
     local node_prompt npm_prompt
     node_prompt=$(node -v 2>/dev/null)
@@ -103,6 +124,10 @@ function setprompt() {
 
     if [[ $ENABLE_DOCKER_PROMPT == 'true' ]]; then
         infoline+=( "$(_get-docker-prompt)" )
+    fi
+
+    if [[ $ENABLE_SCYLLA_PROMPT == 'true' ]]; then
+        infoline+=( "$(_get-scylla-prompt)" )
     fi
 
     if [[ $ENABLE_NODE_PROMPT == 'true' ]] \
