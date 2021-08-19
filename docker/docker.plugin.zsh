@@ -1,4 +1,4 @@
-script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+script_dir="${0:a:h}"
 
 if [[ -n "$ZSH_VERSION" ]]; then
   [[ -f "${0:a:h}/docker-container-zaw.zsh" ]] && source "${0:a:h}/docker-container-zaw.zsh"
