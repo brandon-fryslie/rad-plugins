@@ -63,6 +63,35 @@ function _get-docker-prompt() {
     echo -n "%F{cyan}🐳  ${docker_prompt} %F{default}"
 }
 
+# parse yaml?
+# function parse_yaml() {
+#    local prefix=$2
+#    local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+#    sed -ne "s|^\($s\):|\1|" \
+#         -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
+#         -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
+#    awk -F$fs '{
+#       indent = length($1)/2;
+#       vname[indent] = $2;
+#       for (i in vname) {if (i > indent) {delete vname[i]}}
+#       if (length($3) > 0) {
+#          vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+#          printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
+#       }
+#    }'
+# }
+#
+# function _get_scylla_cluster_name_from_kubeconfig() {
+#     local value=$1
+#     local cluster_name
+#     # if KUBECONFIG env var is set, get the name from that
+#     cluster_name="$(dirname $value)"
+#     cluster_name="$(basename $cluster_name)"
+#
+#     # if the name is .kube it means there's a static file in kube directory
+#     if [[ $cluster_name == ".kube" ]]; then
+# }
+
 function _get-scylla-prompt() {
     local scylla_prompt
     # TODO: if KUBECONFIG is set, show that value
@@ -78,6 +107,12 @@ function _get-scylla-prompt() {
       scylla_prompt="$(basename $scylla_prompt)"
     else
       scylla_prompt="none"
+    fi
+
+    # get namespace
+    local k8s_namespace=$(kubectl config view --minify --output 'jsonpath={..namespace}' 2>/dev/null)
+    if [[ -n $k8s_namespace ]]; then
+      scylla_prompt+=":${k8s_namespace}"
     fi
 
     # zsh colors: https://unix.stackexchange.com/questions/124407/what-color-codes-can-i-use-in-my-ps1-prompt/124409#124409
