@@ -6,13 +6,12 @@
 
 rad-install-homebrew() {
   rad-red "Installing Homebrew"
-  /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 }
 
 if [[ $(uname) == 'Darwin' ]]; then
-  if [[ -x /usr/local/bin/brew ]]; then
-    export PATH="/usr/local/bin:$PATH"
-  else
+  if ! type brew &>/dev/null; then
     rad-install-homebrew
   fi
+  eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
