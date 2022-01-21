@@ -13,3 +13,17 @@ cd.rc() { cd "$DOTFILES_DIR" }
 ### e.rc - open DOTFILES_DIR in your visual editor
 e.rc() { $(rad-get-visual-editor) $DOTFILES_DIR; }
 
+function gcn() {
+  local url=$1
+
+  if [[ -z $url ]]; then
+    rad-red "Must provide URL"
+    return 1
+  fi
+
+  local perl_str='if (m#(git@|ssh|https?:\/\/)([^\/:]+)[\/:]([^\/]+?)\/([^\/]+?)\.git$#) { print "$3_$4"; }'
+  local dest_dir="$(echo $url | perl -ne $perl_str)"
+
+  rad-yellow "INFO: Cloning repo '${url}' into destination dir: ${dest_dir}"
+  git clone $url $dest_dir
+}
