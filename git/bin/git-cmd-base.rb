@@ -1,7 +1,7 @@
 # These commands (fetchall, pullall, lsg) behave similarly.
 # They take any number of command line args that are paths.
 # Paths need to be able to be figured out by File.expand_path.
-# Globbing on the shell and letting it pass in paths is the prefered situation.
+# Globbing on the shell and letting it pass in paths is the preferred situation.
 #
 # Takes any number of paths, absolute or relative as command line arguments.  If
 # no arguments, uses CWD.  It also looks in all subdirectories of the directories passed in.
