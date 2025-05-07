@@ -1,12 +1,7 @@
-# Shell-GPT integration ZSH v0.2
-sgpt_zsh_ask() {
-  sgpt_cmd sgpt "you are an expert software engineer who is concise and precise.  User prompt:"
-}
-zle -N sgpt_zsh_ask
-bindkey '^[i^[u' sgpt_zsh_ask
-# Shell-GPT integration ZSH v0.2
-
 sgpt_cmd() {
+  local history_type=$1
+  shift  # Remove the first argument so that "$@" contains only the sgpt command
+
   if [[ -n "$BUFFER" ]]; then
       BUFFER+="⌛"
       zle -I  # Immediately update the display
@@ -14,10 +9,19 @@ sgpt_cmd() {
 
       local layzsh_prompt=$BUFFER
       local layzsh_response
-      local history_file="$(layzsh_get_history_file "shell-replacement")"
+      local history_file
+      local history_content
+
+      # Get the appropriate history file based on the history type
+      history_file="$(layzsh_get_history_file "${history_type}")"
+
+      # Read the history content
+      history_content=$(<"${history_file}")
+
+      # Include history in the prompt
+      layzsh_prompt="${history_content}\nUser prompt: ${layzsh_prompt}"
 
       layzsh_response="$("$@" <<< "${layzsh_prompt}")"
-
 
       # Strip the trailing hourglass emoji from the prompt
       layzsh_prompt="${layzsh_prompt%⌛}"
@@ -43,4 +47,13 @@ sgpt_cmd() {
   fi
 
   zle-line-finish
+}
+
+sgpt_zsh_fix() {
+  sgpt_cmd sgpt --shell --no-interaction "Prompt: there is a problem with this shell command.  Fix it:"
+}
+
+# Shell-GPT integration ZSH v0.2
+sgpt_zsh_chat() {
+  sgpt_cmd sgpt "you are an expert software engineer who is concise and precise.  User prompt:"
 }
