@@ -25,3 +25,7 @@ function cdtl() {
 
 # import exec-find
 source "${0:a:h}/exec-find-zaw.zsh"
+
+# spinner
+source "${0:A:h}/spinner.zsh"
+
