@@ -19,6 +19,8 @@ function execute_and_wait() {
   tput civis
   index=0
   framesCount=${#frames[@]}
+  # rewrite this while loop to be more clear about what it's doing
+  # make sure to add comments and such, suitable for teaching
   while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
     printf "${YELLOW}${frames[$index]}${NC} ${GREEN}$2${NC}"
     let index=index+1
