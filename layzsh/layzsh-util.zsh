@@ -4,6 +4,24 @@ layzsh_get_root() {
   echo "${layzsh_root}"
 }
 
+# Function to lint shell scripts using shellcheck
+lint_shell_script() {
+  if [[ -z "$1" ]]; then
+    echo "Usage: lint_shell_script <script_file>"
+    return 1
+  fi
+
+  if ! command -v shellcheck &> /dev/null; then
+    echo "Error: shellcheck is not installed. Please install it first."
+    return 1
+  fi
+
+  shellcheck "$1"
+}
+
+# Optionally, create an alias for convenience
+alias lintsh=lint_shell_script
+
 layzsh_init_history_file() {
   local history_type=$1
   local f=$2

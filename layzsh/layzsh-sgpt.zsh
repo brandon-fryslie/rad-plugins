@@ -19,9 +19,17 @@ sgpt_cmd() {
       history_content=$(<"${history_file}")
 
       # Include history in the prompt
-      layzsh_prompt="${history_content}\nUser prompt: ${layzsh_prompt}"
+      layzsh_prompt="User prompt: ${layzsh_prompt}"
 
-      layzsh_response="$("$@" <<< "${layzsh_prompt}")"
+      # Error handling: Check if the response is empty
+      if [[ -z "$layzsh_response" ]]; then
+          echo "Error: No response received from sgpt. Please check your connection or sgpt configuration." >&2
+          # Log the input prompt and history content for debugging
+          echo "Debug: History sent to sgpt - ${history_content}" >&2
+          echo "Debug: User Prompt sent to sgpt - ${layzsh_prompt}" >&2
+          return 1
+      fi
+      layzsh_response="$("$@" <<< "History: ${history_content}\nUser Prompt:\n${layzsh_prompt}")"
 
       # Strip the trailing hourglass emoji from the prompt
       layzsh_prompt="${layzsh_prompt%⌛}"

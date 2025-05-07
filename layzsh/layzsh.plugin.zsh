@@ -32,6 +32,9 @@ zle -N toggle_layzsh
 zle -N sgpt_zsh_chat
 zle -N sgpt_zsh_fix
 
+# Bind the Enter key to the custom accept-line function
+bindkey '^M' layzsh_accept_line
+
 # Bind keys to ZLE widgets
 bindkey '^[i^[i' toggle_layzsh
 bindkey '^[i^[j' sgpt_zsh_chat # Submit a prompt as a chat
