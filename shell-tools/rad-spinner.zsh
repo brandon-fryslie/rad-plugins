@@ -1,42 +1,65 @@
 ###############################################################################
-# build_frames – full‑dot psychedelic mosaic (zsh, 1‑based arrays)           #
-# Produces global frames[] each padded exactly 7 columns                     #
+# Zsh Options and Environment Setup                                           #
+###############################################################################
+setopt KSH_ARRAYS        # Use 0-based indexing
+setopt EXTENDED_GLOB     # Enable extended globbing
+setopt NULL_GLOB         # Patterns that don't match files expand to nothing
+setopt ERR_EXIT          # Exit immediately if a command fails
+# set -x                   # Print each command before executing (debugging)
+# set -v                   # Print shell input lines as they are read (verbose)
+# trap 'echo "Error at line $LINENO"' ERR  # Trace errors
+
+export SHELL=/bin/zsh    # Ensure SHELL is set to Zsh
+export ZDOTDIR=$HOME     # Set ZDOTDIR to home if using custom config directory
+export PATH=$PATH:$HOME/bin  # Ensure custom scripts are in PATH
+
 ###############################################################################
 build_frames() {
   typeset -ga frames
   frames=()
 
-  # Define an array of Braille glyphs
-  local -a braille_glyphs=(
-    $'\u2800' $'\u2801' $'\u2802' $'\u2803' $'\u2804'
-    $'\u2805' $'\u2806' $'\u2807' $'\u2808' $'\u2809'
-    $'\u280A' $'\u280B' $'\u280C' $'\u280D' $'\u280E'
-    $'\u280F' $'\u2810' $'\u2811' $'\u2812' $'\u2813'
-    # Add more glyphs as needed
-  )
-  local cells=5             # Number of Braille glyphs per frame
-  local scroll=20           # time steps before ping‑pong reverse
+  # Define a 2D array of Braille glyphs
+  local -a braille_grid
+  local rows=16
+  local cols=16
 
-  # Lookup arrays for individual dot bitmasks (1‑based rows)
-  local -a maskL=('' 1 2 4 8)            # dots 1‑4 (left column)
-  local -a maskR=('' 16 32 64 128)       # dots 5‑8 (right column)
+  # Initialize the array with the correct size
+  braille_grid=()
+
+  # Populate the 2D array with all 256 Braille glyphs
+  for ((i=0; i<rows; i++)); do
+    for ((j=0; j<cols; j++)); do
+      local index=$((i * cols + j))
+      if (( index >= 0 && index < rows * cols )); then
+        braille_grid[index]=$'\u28'$(printf "%02X" "$index")
+      fi
+    done
+  done
+
+  local cells=5             # Number of Braille glyphs per frame
+  local scroll=20           # Number of frames before reversing
+
 
   for ((t=0; t<scroll; t++)); do
     local frame=""
     for ((c=0; c<cells; c++)); do
-      # Use a simple pattern or index to select glyphs
-      local index=$(( (t + c) % ${#braille_glyphs[@]} ))
-      frame+="${braille_glyphs[index]}"
+      # Calculate row and column indices
+      local row=$(( (t + c) % rows ))
+      local col=$(( (t + c) % cols ))
+      local grid_index=$((row * cols + col))
+      if (( grid_index >= 0 && grid_index < rows * cols )); then
+        frame+="${braille_grid[grid_index]}"
+      fi
     done
     frames+=( "$(printf '%-7s' "$frame")" )
   done
 
-  # Ping‑pong reverse for smooth back‑and‑forth motion
+  # Ping-pong reverse for smooth back-and-forth motion
   for ((idx=${#frames}-1; idx>1; idx--)); do
     frames+=( "${frames[idx]}" )
   done
 
-  frames+=( '       ' )        # trailing blank frame to dissolve
+  frames+=( '       ' )        # Trailing blank frame to dissolve
 }
 ###############################################################################
 # Quiet Rainbow Loader (no rm prompts, no [n] job messages, no flicker)       #
@@ -105,8 +128,8 @@ rad_spinner_stop() {
 }
 
 rad_spinner_test() {
-  zsh -l <<EOF
-  source /Users/bmf/.zgen/brandon-fryslie/rad-plugins-master/shell-tools/rad-spinner.zsh
+#  zsh -l <<EOF
+#  source /Users/bmf/.zgen/brandon-fryslie/rad-plugins-master/shell-tools/rad-spinner.zsh
 
   rad_spinner_start "Starting up..."
   sleep 1
@@ -117,7 +140,7 @@ rad_spinner_test() {
   rad_spinner_update "Step 3/3 — Finalizing…"
   sleep 1
   rad_spinner_stop
-EOF
+#EOF
 }
 
 ###############################################################################
