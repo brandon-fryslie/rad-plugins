@@ -4,7 +4,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-def gather_context(file_path: str, line_number: int, selection: 'EditorSelection'):
+def gather_context(file_path: Path, line_number: int, selection: 'EditorSelection'):
     # Read file into lines
     with open(file_path, 'r') as f:
         lines = f.readlines()
@@ -21,14 +21,20 @@ def gather_context(file_path: str, line_number: int, selection: 'EditorSelection
 
     # Handle the first line separately if it starts mid-line
     if selected_lines:
-        selected_lines[0] = selected_lines[0][selection.start_column:]
+        selected_lines[0] = selected_lines[0][selection.start_column-1:]
 
     # Handle the last line separately if it ends mid-line
     if len(selected_lines) > 1:
-        selected_lines[-1] = selected_lines[-1][:selection.end_column]
+        selected_lines[-1] = selected_lines[-1][:selection.end_column-1]
 
     # Join the selected lines to form the final selection text
-    selection_txt = '\n'.join(selected_lines).strip()
+    selection_txt = '\n'.join([line.rstrip('\n') for line in selected_lines])
+
+    # write a fibonacci function
+
+    print("----- SELECTION TEXT -----")
+    print(selection_txt)
+    print("----- /// SELECTION TEXT -----")
 
     # We also want the whole file
     whole_file = '\n'.join(lines)
@@ -55,11 +61,12 @@ def run_sgpt_with_context(context, file_ext: str):
     prompt = f"""\
 You are an expert senior staff principle software engineer specializing in simplicity and almost haiku like natural 
 abiltiy with writing code snippets.  You're an expert at all well known programming langauges.
-The file extension you're writing in is: ${file_ext}
-You will be given a user prompt, the entire file, and the current selection.  You can use the entire file for context, but ONLY generate code to replace the SELECTION in a way appropriate for the context, and nothing else.
-You will be precise when needed, if an instruction doesn't 
-make sense, you automatically adjust to do the right thing: DWIM philosophy.
-Ensure you maintain consistent formatting and indentation when the code is injected back in.
+The file extension or filename is '${file_ext}'.
+You will be given a user prompt, the entire file, and the current selection.  
+ONLY generate code to replace the EXACT SELECTION.  Use the entire file ONLY to ensure the replacement is coherent.  
+DO NOT following instructions outside of the selection. 
+You will be precise and surgical with your implementation.
+All generated code MUST maintain consistent formatting and indentation with existing code, ensuring seamless integration.
 
 ${context}
 """
@@ -130,7 +137,9 @@ class EditorSelection:
     end_column: int
 
 def main():
-    file_path = sys.argv[1]
+    # todo: validate args
+
+    file_path = Path(sys.argv[1])
     line_number = int(sys.argv[2])
 
     selection = EditorSelection(
@@ -140,21 +149,25 @@ def main():
         end_column=int(sys.argv[6]),
     )
 
-    print("!!!!!")
-    print("selection lines:")
-    print(selection.start_line)
-    print(selection.end_line)
-    print("selection cols:")
-    print(selection.start_column)
-    print(selection.end_column)
-    print("!!!!!")
+    # print("!!!!!")
+    # print("selection lines:")
+    # print(selection.start_line)
+    # print(selection.end_line)
+    # print("selection cols:")
+    # print(selection.start_column)
+    # print(selection.end_column)
+    # print("!!!!!")
     # Optionally do something with py_interpreter_dir if needed
-    if not Path(file_path).exists():
+    if not file_path.exists():
         print(f"Error: File '{file_path}' not found.")
         sys.exit(1)
 
     context = gather_context(file_path, line_number, selection)
-    run_sgpt_with_context(context, Path(file_path).suffix)
+
+    # if the path suffix is empty (e.g., zshrc, bashrc, etc) use the filename instead
+    suffix_or_filename = file_path.suffix if file_path.suffix != "" else file_path.name
+
+    run_sgpt_with_context(context, suffix_or_filename)
 
 if __name__ == '__main__':
     main()
