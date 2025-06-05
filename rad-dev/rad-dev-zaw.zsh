@@ -4,12 +4,33 @@ bindkey '^[D' zaw-rad-dev
 
 ### key binding: option + shift + D
 
+function test-zaw-rad-dev() {
+  local results="$(find ${ZGEN_DIR} -wholename '*plugin.zsh' -not -path "*/*oh-my-zsh*/*" -not -path "*/*zsh-users*/*" -not -path "*/*prezto*/*"  -not -path "*/*zsh-syntax-highlighting*/*")"
+  desc="$(echo "$results" | perl -ne 'printf("%-30s %-20s %-20s\n", $1, $3, $2) if m#^(?:.*/\.zgen(?:om)?/)([\w.-]+/[\w.-]+)/(?:([^/]+)/)?([^/]+)/[^/]+\.zsh$#g')"
+  echo "desc ----"
+  echo $desc
+  echo "/ desc ----"
+}
+
 ### Use this to view docs, edit a plugin, or view the source code of a plugin
 function zaw-src-rad-dev() {
-    local results="$(find ~/.zgen -wholename '*plugin.zsh' -not -path "*/*oh-my-zsh*/*" -not -path "*/*zsh-users*/*" -not -path "*/*prezto*/*"  -not -path "*/*zsh-syntax-highlighting*/*")"
+    typeset -a ignores=()
+    if [[ -n $RAD_DEV_IGNORE_BASE_PLUGINS ]]; then
+      ignores=(-not -path "*/*oh-my-zsh*/*" -not -path "*/*zsh-users*/*" -not -path "*/*prezto*/*"  -not -path "*/*zsh-syntax-highlighting*/*")
+    else
+#      echo "seting ignores to be empty"
+      ignores=()
+    fi
+#    echo $ignores
+
+    local results="$(find ${ZGEN_DIR} -wholename '*plugin.zsh' ${ignores[@]})"
+    echo $results | wc -l
 
     local title=$(printf '%-40s %-20s' "Repo" "Plugin")
-    local desc="$(echo "$results" | perl -ne 'printf("%-40s %-20s\n", $1, $2) if m#^(?:.*/.zgen/)(?:git@[\w+\.-]+COLON-)?([\w\.@-]+/[\w\.-]+?)(?:.git)?(?:-master)?/.*?([\w.-]+\.zsh)$#g')"
+    typeset -a desc
+    # Determine the path and set the description
+    desc="$(echo "$results" | perl -ne 'printf("%-40s %-20s\n", $1, $2) if m#^(?:.*/\.zgen(?:om)?/)([\w.-]+/[\w.-]+)/(?:([^/]+)/)?([^/]+)/[^/]+\.zsh$#g')"
+    echo $desc | wc -l
 
     : ${(A)candidates::=${(f)results}}
     : ${(A)cand_descriptions::=${(f)desc}}
@@ -35,7 +56,12 @@ function zaw-src-rad-dev() {
 # Helper functions
 # Get the plugin directory from the filename
 zaw-rad-dev-get-plugin-dir() {
-    echo $1 | perl -pe 's#^(.*/.zgen/[^/]+?/[^/]+?)/.*#\1#'
+  # TODO: fix this
+  if [[ -n RAD_SHELL_RAD_PLUGIN_DIR ]]; then
+    echo "${RAD_SHELL_RAD_PLUGIN_DIR}"
+  else
+    echo $1 | perl -pe 's#^(.*/.(?:zgenom|zgen)/[^/]+?/[^/]+?)/.*#\1#'
+  fi
 }
 
 ### zaw-src-dev-format-docs - formats & highlights the documentation in rad-shell plugins

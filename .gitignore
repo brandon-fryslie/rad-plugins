@@ -1,1 +1,3 @@
 .aider*
+.ipynb_checkpoints/
+*.zwc

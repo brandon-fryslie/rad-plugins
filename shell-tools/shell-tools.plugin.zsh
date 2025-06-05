@@ -1,3 +1,17 @@
+# example of a depends_on directive (format 1, plugin id only)
+# <rad directive prefix> <rad directive action> <plugin id>
+# ☢ depends_on molovo/revolver
+# @rad@ depends_on molovo/revolver
+
+# example of a depends_on directive (format 2, single function)
+# ☢ depends_on _revolver_stop molovo/revolver
+
+# example of a depends_on directive (format 3, multi function)
+# note: this does not control what functions are available.  this will throw an error
+# if the functions do not exist after sourcing the plugin
+# <rad directive prefix> <function list> <plugin id>
+# ☢ depends_on _revolver_start,_revolver_stop molovo/revolver
+
 #################################################################
 # cd to a dir in ~/projects
 # because we type that a lot
