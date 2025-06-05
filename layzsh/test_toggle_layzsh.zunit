@@ -1,0 +1,20 @@
+#!/usr/bin/env zunit
+
+# Load the necessary LayZsh files
+source "../layzsh/layzsh.plugin.zsh"
+
+@test "Toggle LayZsh Activation" {
+  # Simulate key press to activate LayZsh
+  zle -N toggle_layzsh
+  bindkey '^[i^[i' toggle_layzsh
+  zle toggle_layzsh
+
+  # Check if the prompt includes the eyeball emoji
+  [[ $PROMPT == *"👁️"* ]] || fail "Expected prompt to include '👁️' when LayZsh is activated"
+
+  # Simulate key press to deactivate LayZsh
+  zle toggle_layzsh
+
+  # Check if the prompt does not include the eyeball emoji
+  [[ $PROMPT != *"👁️"* ]] || fail "Expected prompt to not include '👁️' when LayZsh is deactivated"
+}

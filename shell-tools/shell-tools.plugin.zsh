@@ -44,3 +44,21 @@ fi
 
 # import exec-find
 source "${0:a:h}/exec-find-zaw.zsh"
+
+# spinner
+source "${0:A:h}/spinner.zsh"
+source "${0:A:h}/rad-spinner.zsh"
+source "${0:A:h}/rad-spinner2.zsh"
+
+# spinner test
+
+_rad_spinner_test() {
+  local spinner_fn_prefix=$1
+  [[ -z "${spinner_fn_prefix}" ]] && { rad-res "ERROR: rad_spinner_test requires a spinner_fn_prefix"; return 1; }
+  local sleep_time=${2:-5}
+  ${spinner_fn_prefix}_start "Starting.  Step 1/3"
+  sleep "${sleep_time}"
+  ${spinner_fn_prefix}_update "Updating!  Step 2/3"
+  sleep "${sleep_time}"
+  ${spinner_fn_prefix}_stop "Done!"
+}
