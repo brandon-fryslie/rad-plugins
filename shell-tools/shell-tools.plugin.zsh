@@ -37,5 +37,10 @@ function cdtl() {
   cd $repo_dir
 }
 
+# setup direnv
+if (( $+commands[direnv] )); then
+  eval "$(direnv hook zsh)" 1>/dev/null
+fi
+
 # import exec-find
 source "${0:a:h}/exec-find-zaw.zsh"
