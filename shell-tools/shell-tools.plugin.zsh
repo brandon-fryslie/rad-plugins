@@ -44,6 +44,7 @@ fi
 
 # import exec-find
 source "${0:a:h}/exec-find-zaw.zsh"
+source "${0:a:h}/rad-shell.zsh"
 
 # spinner
 source "${0:A:h}/spinner.zsh"
