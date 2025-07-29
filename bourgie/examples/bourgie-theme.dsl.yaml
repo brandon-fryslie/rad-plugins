@@ -1,0 +1,154 @@
+# Bourgie Theme - YAML DSL with inline functions
+# This maintains the familiar oh-my-posh structure while allowing custom zsh functions
+
+version: 3
+final_space: true
+console_title_template: '{{ .Shell }} in {{ .Folder }}'
+
+palette:
+  primary_black: '#2E3440'
+  primary_cyan: '#88C0D0'
+  primary_green: '#A3BE8C'
+  primary_light: '#E5E9F0'
+  primary_orange: '#D08770'
+  primary_red: '#BF616A'
+  primary_subtle: '#4C566A'
+  primary_white: '#ECEFF4'
+  primary_yellow: '#EBCB8B'
+
+blocks:
+  - type: prompt
+    alignment: left
+    segments:
+      # SSH session info with custom logic
+      - type: text
+        style: plain
+        foreground: '#2E3440'
+        background: transparent
+        ssh_info: ->
+          if @SSH_CLIENT then return "(@USER@@HOSTNAME) "
+          return ""
+
+      # Directory path with writability check  
+      - type: path
+        style: plain
+        home_icon: "~"
+        background: transparent
+        template: '({{ .Path }}) '
+        foreground_templates:
+          - '{{ if .Writable }}#A3BE8C{{ else }}#EBCB8B{{ end }}'
+
+      # Docker environment with custom formatting
+      - type: text
+        style: plain
+        foreground: '#88C0D0'  
+        background: transparent
+        docker_status: ->
+          return "" unless @ENABLE_DOCKER_PROMPT
+          host = @DOCKER_HOST || "unset"
+          return "🐳 #{host} "
+
+      # Python venv with enhanced display
+      - type: python
+        style: plain
+        foreground: '#D08770'
+        background: transparent
+        venv_display: ->
+          return "" if @ERROR
+          return "" unless @VENV
+          return "(🐱 Venv: #{@VENV}) "
+
+      # Node.js with lazy loading support
+      - type: node
+        style: plain
+        foreground: '#A3BE8C'
+        background: transparent
+        node_info: ->
+          show_node = @ENABLE_NODE_PROMPT || (@LAZY_NODE_PROMPT && @NVM_LOADED)
+          return "" unless show_node
+          return "⬢ #{@FULL} "
+
+      # NPM version matching Node display logic
+      - type: npm
+        style: plain
+        foreground: '#EBCB8B'
+        background: transparent  
+        npm_info: ->
+          show_npm = @ENABLE_NODE_PROMPT || (@LAZY_NODE_PROMPT && @NVM_LOADED)
+          return "" unless show_npm
+          return "npm #{@FULL} "
+
+      # Local user (non-SSH)
+      - type: session
+        style: plain
+        foreground: '#2E3440'
+        background: transparent
+        local_user: ->
+          return "" if @SSH_CLIENT
+          return "(#{@USERNAME})"
+
+  # Git information line
+  - type: prompt
+    alignment: left
+    newline: true
+    segments:
+      - type: git
+        style: plain
+        foreground: '#E5E9F0'
+        background: transparent
+        properties:
+          fetch_stash_count: true
+          fetch_status: true
+          fetch_upstream_icon: true
+          fetch_user: true
+        git_full_status: ->
+          info = "(git) #{@HEAD} "
+          info += "S" if @WORKING_CHANGED
+          info += "U" if @STAGING_CHANGED
+          info += " #{@HEAD}"
+          if @UPSTREAM
+            info += " [#{@UPSTREAM}"
+            info += "-#{@BEHIND}" if @BEHIND > 0
+            info += "+#{@AHEAD}" if @AHEAD > 0
+            info += "]"
+          end
+          info += " (#{@STASH_COUNT} stashed)" if @STASH_COUNT > 0
+          info += " (#{@USER_NAME})" if @USER_NAME
+          return info
+
+  # Prompt character line
+  - type: prompt
+    alignment: left
+    newline: true
+    segments:
+      # Background job count
+      - type: shell
+        style: plain
+        foreground: '#E5E9F0'
+        background: transparent
+        job_count: ->
+          return "" unless @JOB_COUNT > 0
+          return "#{@JOB_COUNT} "
+
+      # Exit code aware prompt character
+      - type: exit
+        style: plain
+        background: transparent
+        foreground_templates:
+          - '{{ if gt .Code 0 }}#BF616A{{ else }}#ECEFF4{{ end }}'
+        prompt_char: ->
+          return "# " if @ROOT
+          return "% "
+
+  # Right prompt for time
+  - type: rprompt
+    segments:
+      - type: time
+        style: plain
+        foreground: '#4C566A'
+        background: transparent
+        properties:
+          time_format: "15:04:05"
+        time_display: ->
+          return "" unless @BOURGIE_SHOW_TIME
+          return @CURRENT_DATE

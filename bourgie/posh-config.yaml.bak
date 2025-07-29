@@ -1,0 +1,122 @@
+version: 2
+final_space: true
+console_title_template: '{{ .Shell }} in {{ .Folder }}'
+
+blocks:
+  # Main information line - each segment has single responsibility
+  - type: prompt
+    alignment: left 
+    segments:
+      # SSH hostname only
+      - type: session
+        style: plain
+        foreground: "#2E3440"
+        background: "transparent"
+        template: "{{ if .Env.SSH_CLIENT }}({{ .Env.USER }}@{{ .Env.HOSTNAME }}) {{ end }}"
+
+      # Directory path only
+      - type: path
+        style: plain
+        foreground_templates:
+          - "{{ if .Writable }}#A3BE8C{{ else }}#EBCB8B{{ end }}"
+        background: "transparent" 
+        properties:
+          style: full
+          home_icon: "~"
+        template: "({{ .Path }}) "
+
+      # Docker status only
+      - type: text
+        style: plain
+        foreground: "#88C0D0"
+        background: "transparent"
+        template: "{{ if .Env.ENABLE_DOCKER_PROMPT }}🐳  {{ .Env.DOCKER_HOST | default \"unset\" }} {{ end }}"
+
+      # Python environment only
+      - type: python
+        style: plain
+        foreground: "#D08770"
+        background: "transparent"
+        template: "{{ if .Error }}{{ else }}{{ if .Venv }}(🐱 Venv: {{ .Venv }}) {{ end }}{{ end }}"
+
+      # Node version only
+      - type: node
+        style: plain
+        foreground: "#A3BE8C"
+        background: "transparent"
+        template: "{{ if or .Env.ENABLE_NODE_PROMPT (and .Env.LAZY_NODE_PROMPT .Env.NVM_LOADED) }}⬢ {{ .Full }} {{ end }}"
+
+      # npm version only  
+      - type: npm
+        style: plain
+        foreground: "#EBCB8B"
+        background: "transparent"
+        template: "{{ if or .Env.ENABLE_NODE_PROMPT (and .Env.LAZY_NODE_PROMPT .Env.NVM_LOADED) }}npm {{ .Full }} {{ end }}"
+
+      # Local username only
+      - type: session
+        style: plain
+        foreground: "#2E3440"
+        background: "transparent"
+        template: "{{ if not .Env.SSH_CLIENT }}({{ .UserName }}){{ end }}"
+
+  # Git line - keep as single segment but clean format
+  - type: prompt
+    alignment: left
+    newline: true
+    segments:
+      # Git information - simplified single responsibility
+      - type: git
+        style: plain
+        foreground: "#E5E9F0"
+        background: "transparent"
+        properties:
+          fetch_status: true
+          fetch_upstream_icon: true
+          fetch_stash_count: true
+          fetch_user: true
+        template: "(git) {{ .HEAD }} {{ if .Working.Changed }}S{{ end }}{{ if .Staging.Changed }}U{{ end }} {{ .HEAD }}{{ if .Upstream }} [{{ .Upstream }}{{ if .Behind }}-{{ .Behind }}{{ end }}{{ if .Ahead }}+{{ .Ahead }}{{ end }}]{{ end }}{{ if gt .StashCount 0 }} ({{ .StashCount }} stashed){{ end }}{{ if .User.Name }} ({{ .User.Name }}){{ end }}"
+
+  # Command line - each segment single responsibility
+  - type: prompt
+    alignment: left
+    newline: true
+    segments:
+      # Background job count only
+      - type: shell
+        style: plain
+        foreground: "#E5E9F0"
+        background: "transparent"
+        template: "{{ if gt .JobCount 0 }}{{ .JobCount }} {{ end }}"
+
+      # Command prompt symbol only
+      - type: exit
+        style: plain
+        foreground_templates:
+          - "{{ if gt .Code 0 }}#BF616A{{ else }}#ECEFF4{{ end }}"
+        background: "transparent"
+        template: "{{ if .Root }}# {{ else }}% {{ end }}"
+
+# Right prompt - single responsibility
+  - type: rprompt
+    segments:
+      # Time display only
+      - type: time
+        style: plain
+        foreground: "#4C566A"
+        background: "transparent"
+        properties:
+          time_format: "15:04:05"
+        template: "{{ if .Env.BOURGIE_SHOW_TIME }}{{ .CurrentDate | date .Format }}{{ end }}"
+
+# Color palette
+palette:
+  primary_green: "#A3BE8C"     # Staged changes, writable dirs
+  primary_yellow: "#EBCB8B"    # npm, non-writable dirs  
+  primary_red: "#BF616A"       # Errors, unstaged changes
+  primary_cyan: "#88C0D0"      # Docker
+  primary_orange: "#D08770"    # Python
+  primary_light: "#E5E9F0"     # Git info
+  primary_white: "#ECEFF4"     # Prompt
+  primary_black: "#2E3440"     # Usernames
+  primary_subtle: "#4C566A"    # Time

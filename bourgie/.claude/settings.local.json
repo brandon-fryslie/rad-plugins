@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(oh-my-posh config:*)",
+      "Bash(source:*)",
+      "Bash(zsh:*)",
+      "Bash(grep:*)",
+      "Bash(export RAD_BOURGIE_DEBUG=true)",
+      "Bash(bourgie_config debug:*)",
+      "Bash(chmod:*)"
+    ],
+    "deny": []
+  }
+}
