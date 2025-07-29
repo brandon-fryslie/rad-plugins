@@ -338,6 +338,271 @@ function bourgie_hot_reload_benchmark() {
     echo "  Iterations: $iterations"
 }
 
+# DSL Compiler Integration Functions
+
+# Check if Python DSL compiler is available
+function _bourgie_check_dsl_compiler() {
+    local compiler_script="$RAD_BOURGIE_DIR/bourgie_dsl_compiler.py"
+    
+    if [[ ! -f "$compiler_script" ]]; then
+        _bourgie_debug "DSL compiler script not found: $compiler_script"
+        return 1
+    fi
+    
+    if ! command -v python3 >/dev/null 2>&1; then
+        _bourgie_debug "Python3 not found - DSL compiler unavailable"
+        return 1
+    fi
+    
+    # Check if required Python modules are available
+    if ! python3 -c "import yaml, watchdog" 2>/dev/null; then
+        _bourgie_debug "Required Python modules missing (yaml, watchdog)"
+        return 1
+    fi
+    
+    return 0
+}
+
+# Compile DSL file to oh-my-posh config and zsh functions
+function bourgie_dsl_compile() {
+    local dsl_file="$1"
+    local output_config="$2"
+    local output_functions="$3"
+    
+    if [[ -z "$dsl_file" ]]; then
+        echo "Usage: bourgie_dsl_compile <dsl_file> [output_config] [output_functions]"
+        return 1
+    fi
+    
+    if ! _bourgie_check_dsl_compiler; then
+        echo "❌ DSL compiler not available"
+        echo "Install required dependencies: pip3 install pyyaml watchdog"
+        return 1
+    fi
+    
+    local compiler_script="$RAD_BOURGIE_DIR/bourgie_dsl_compiler.py"
+    
+    # Set default output paths if not provided
+    local config_out="${output_config:-${dsl_file%.*}-compiled.yaml}"
+    local functions_out="${output_functions:-${dsl_file%.*}-functions.zsh}"
+    
+    _bourgie_debug "Compiling DSL: $dsl_file -> $config_out, $functions_out"
+    
+    # Run compiler
+    if python3 "$compiler_script" compile "$dsl_file" \
+        --config-output "$config_out" \
+        --functions-output "$functions_out"; then
+        
+        echo "✅ DSL compiled successfully"
+        echo "  Config: $config_out"
+        echo "  Functions: $functions_out"
+        return 0
+    else
+        echo "❌ DSL compilation failed"
+        return 1
+    fi
+}
+
+# Start DSL daemon for automatic compilation
+function bourgie_dsl_daemon() {
+    local action="${1:-status}"
+    local dsl_file="$2"
+    
+    case "$action" in
+        "start")
+            if [[ -z "$dsl_file" ]]; then
+                echo "Usage: bourgie_dsl_daemon start <dsl_file>"
+                return 1
+            fi
+            
+            if ! _bourgie_check_dsl_compiler; then
+                echo "❌ DSL compiler not available"
+                return 1
+            fi
+            
+            local compiler_script="$RAD_BOURGIE_DIR/bourgie_dsl_compiler.py"
+            local pid_file="$RAD_BOURGIE_DIR/.dsl_daemon.pid"
+            local config_out="${dsl_file%.*}-compiled.yaml"
+            local functions_out="${dsl_file%.*}-functions.zsh"
+            
+            # Check if daemon is already running
+            if [[ -f "$pid_file" ]]; then
+                local existing_pid=$(cat "$pid_file" 2>/dev/null)
+                if kill -0 "$existing_pid" 2>/dev/null; then
+                    echo "⚠️  DSL daemon already running (PID: $existing_pid)"
+                    return 1
+                else
+                    # Remove stale PID file
+                    rm -f "$pid_file"
+                fi
+            fi
+            
+            # Start daemon in background
+            nohup python3 "$compiler_script" daemon "$dsl_file" \
+                --config-output "$config_out" \
+                --functions-output "$functions_out" \
+                --daemon-pid-file "$pid_file" \
+                >/dev/null 2>&1 &
+            
+            # Wait a moment and check if it started successfully
+            sleep 1
+            if [[ -f "$pid_file" ]]; then
+                local daemon_pid=$(cat "$pid_file")
+                if kill -0 "$daemon_pid" 2>/dev/null; then
+                    echo "🔥 DSL daemon started (PID: $daemon_pid)"
+                    echo "📁 Watching: $dsl_file"
+                    echo "📄 Output config: $config_out"
+                    echo "⚡ Output functions: $functions_out"
+                    
+                    # Export daemon info for hot reload integration
+                    export BOURGIE_DSL_DAEMON_PID="$daemon_pid"
+                    export BOURGIE_DSL_CONFIG_FILE="$config_out"
+                    export BOURGIE_DSL_FUNCTIONS_FILE="$functions_out"
+                    
+                    return 0
+                fi
+            fi
+            
+            echo "❌ Failed to start DSL daemon"
+            return 1
+            ;;
+            
+        "stop")
+            local pid_file="$RAD_BOURGIE_DIR/.dsl_daemon.pid"
+            
+            if [[ ! -f "$pid_file" ]]; then
+                echo "❄️  DSL daemon is not running"
+                return 0
+            fi
+            
+            local daemon_pid=$(cat "$pid_file" 2>/dev/null)
+            if [[ -n "$daemon_pid" ]] && kill -0 "$daemon_pid" 2>/dev/null; then
+                if kill "$daemon_pid" 2>/dev/null; then
+                    echo "🛑 DSL daemon stopped (PID: $daemon_pid)"
+                    rm -f "$pid_file"
+                    rm -f "${pid_file%.*}.status"
+                    
+                    # Clear daemon environment variables
+                    unset BOURGIE_DSL_DAEMON_PID
+                    unset BOURGIE_DSL_CONFIG_FILE
+                    unset BOURGIE_DSL_FUNCTIONS_FILE
+                    
+                    return 0
+                else
+                    echo "❌ Failed to stop DSL daemon"
+                    return 1
+                fi
+            else
+                echo "❄️  DSL daemon is not running"
+                rm -f "$pid_file"
+                return 0
+            fi
+            ;;
+            
+        "status")
+            local pid_file="$RAD_BOURGIE_DIR/.dsl_daemon.pid"
+            local status_file="${pid_file%.*}.status"
+            
+            if [[ -f "$pid_file" ]]; then
+                local daemon_pid=$(cat "$pid_file" 2>/dev/null)
+                if [[ -n "$daemon_pid" ]] && kill -0 "$daemon_pid" 2>/dev/null; then
+                    echo "🔥 DSL daemon is running (PID: $daemon_pid)"
+                    
+                    if [[ -f "$status_file" ]]; then
+                        echo "📊 Daemon status:"
+                        cat "$status_file" | python3 -m json.tool 2>/dev/null || cat "$status_file"
+                    fi
+                    
+                    return 0
+                else
+                    echo "❄️  DSL daemon is not running (stale PID file)"
+                    rm -f "$pid_file" "$status_file"
+                    return 1
+                fi
+            else
+                echo "❄️  DSL daemon is not running"
+                return 1
+            fi
+            ;;
+            
+        "restart")
+            echo "🔄 Restarting DSL daemon..."
+            bourgie_dsl_daemon stop
+            sleep 1
+            if [[ -n "$dsl_file" ]]; then
+                bourgie_dsl_daemon start "$dsl_file"
+            else
+                echo "❌ DSL file required for restart"
+                return 1
+            fi
+            ;;
+            
+        *)
+            echo "Usage: bourgie_dsl_daemon [start|stop|status|restart] [dsl_file]"
+            echo ""
+            echo "Commands:"
+            echo "  start <file>  - Start daemon watching DSL file"
+            echo "  stop          - Stop running daemon"
+            echo "  status        - Show daemon status"
+            echo "  restart <file> - Restart daemon with DSL file"
+            ;;
+    esac
+}
+
+# Initialize DSL-compiled theme
+function bourgie_init_dsl() {
+    local dsl_file="$1"
+    local auto_daemon="${2:-true}"
+    
+    if [[ -z "$dsl_file" || ! -f "$dsl_file" ]]; then
+        echo "❌ DSL file not found: $dsl_file"
+        return 1
+    fi
+    
+    local config_file="${dsl_file%.*}-compiled.yaml"
+    local functions_file="${dsl_file%.*}-functions.zsh"
+    
+    _bourgie_debug "Initializing DSL theme: $dsl_file"
+    
+    # Compile DSL if output files don't exist or are older than source
+    if [[ ! -f "$config_file" || ! -f "$functions_file" || "$dsl_file" -nt "$config_file" ]]; then
+        echo "🔄 Compiling DSL theme..."
+        if ! bourgie_dsl_compile "$dsl_file" "$config_file" "$functions_file"; then
+            return 1
+        fi
+    fi
+    
+    # Source the generated functions file
+    if [[ -f "$functions_file" ]]; then
+        _bourgie_debug "Sourcing DSL functions: $functions_file"
+        source "$functions_file"
+    fi
+    
+    # Start daemon if requested and not already running
+    if [[ "$auto_daemon" == "true" ]] && ! bourgie_dsl_daemon status >/dev/null 2>&1; then
+        _bourgie_debug "Starting DSL daemon for: $dsl_file"
+        bourgie_dsl_daemon start "$dsl_file" >/dev/null 2>&1
+    fi
+    
+    # Update config file path for hot reload
+    export BOURGIE_CONFIG_FILE="$config_file"
+    export BOURGIE_DSL_SOURCE_FILE="$dsl_file"
+    
+    # Initialize oh-my-posh with compiled config
+    if [[ "$BOURGIE_HOT_RELOAD" == "true" ]]; then
+        bourgie_init_hot_reload
+    else
+        eval "$(oh-my-posh init zsh --config "$config_file")"
+    fi
+    
+    echo "✅ DSL theme initialized"
+    echo "📁 Source: $dsl_file"
+    echo "📄 Config: $config_file"
+    echo "⚡ Functions: $functions_file"
+    
+    return 0
+}
+
 # Helper functions for the interactive wizard
 function _bourgie_show_header() {
     echo ""

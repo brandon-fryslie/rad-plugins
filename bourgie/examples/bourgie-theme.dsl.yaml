@@ -25,35 +25,34 @@ blocks:
         style: plain
         foreground: '#2E3440'
         background: transparent
-        ssh_info: ->
-          if @SSH_CLIENT then return "(@USER@@HOSTNAME) "
-          return ""
+        custom_fn: ->
+          [[ -n "$SSH_CLIENT" ]] && echo "($USER@$HOSTNAME) " || echo ""
 
-      # Directory path with writability check  
+      # Directory path with writability check
       - type: path
         style: plain
         home_icon: "~"
         background: transparent
-        template: '({{ .Path }}) '
+        template: '({{ . }}) '
         foreground_templates:
           - '{{ if .Writable }}#A3BE8C{{ else }}#EBCB8B{{ end }}'
 
       # Docker environment with custom formatting
       - type: text
         style: plain
-        foreground: '#88C0D0'  
+        foreground: '#88C0D0'
         background: transparent
-        docker_status: ->
-          return "" unless @ENABLE_DOCKER_PROMPT
-          host = @DOCKER_HOST || "unset"
-          return "🐳 #{host} "
+        custom_fn: ->
+          [[ "$ENABLE_DOCKER_PROMPT" != "true" ]] && return
+          local host="${DOCKER_HOST:-unset}"
+          echo "🐳 ${host} "
 
       # Python venv with enhanced display
       - type: python
         style: plain
         foreground: '#D08770'
         background: transparent
-        venv_display: ->
+        custom_fn: ->
           return "" if @ERROR
           return "" unless @VENV
           return "(🐱 Venv: #{@VENV}) "
@@ -63,20 +62,26 @@ blocks:
         style: plain
         foreground: '#A3BE8C'
         background: transparent
-        node_info: ->
-          show_node = @ENABLE_NODE_PROMPT || (@LAZY_NODE_PROMPT && @NVM_LOADED)
-          return "" unless show_node
-          return "⬢ #{@FULL} "
+        custom_fn: ->
+          local show_node=false
+          [[ "$ENABLE_NODE_PROMPT" == "true" ]] && show_node=true
+          [[ "$LAZY_NODE_PROMPT" == "true" && "$NVM_LOADED" == "true" ]] && show_node=true
+          [[ "$show_node" != "true" ]] && return
+          local version=$(node -v 2>/dev/null || echo "unknown")
+          echo "⬢ ${version} "
 
       # NPM version matching Node display logic
       - type: npm
         style: plain
         foreground: '#EBCB8B'
-        background: transparent  
-        npm_info: ->
-          show_npm = @ENABLE_NODE_PROMPT || (@LAZY_NODE_PROMPT && @NVM_LOADED)
-          return "" unless show_npm
-          return "npm #{@FULL} "
+        background: transparent
+        custom_fn: ->
+          local show_npm=false
+          [[ "$ENABLE_NODE_PROMPT" == "true" ]] && show_npm=true
+          [[ "$LAZY_NODE_PROMPT" == "true" && "$NVM_LOADED" == "true" ]] && show_npm=true
+          [[ "$show_npm" != "true" ]] && return
+          local version=$(npm -v 2>/dev/null || echo "unknown")
+          echo "npm ${version} "
 
       # Local user (non-SSH)
       - type: session

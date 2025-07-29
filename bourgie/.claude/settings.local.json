@@ -10,7 +10,10 @@
       "Bash(grep:*)",
       "Bash(export RAD_BOURGIE_DEBUG=true)",
       "Bash(bourgie_config debug:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(python3:*)",
+      "Bash(pip3 install:*)",
+      "Bash(uv pip install:*)"
     ],
     "deny": []
   }

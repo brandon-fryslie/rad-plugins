@@ -1,5 +1,5 @@
-# Simple Custom Theme - YAML DSL Example
-# Demonstrates basic inline functions with CoffeeScript-style syntax
+# Simple Custom Theme - YAML DSL Example with new syntax
+# Demonstrates basic inline functions with plain zsh code
 
 version: 3
 final_space: true
@@ -13,12 +13,12 @@ blocks:
         style: plain
         foreground: '#00CED1'
         background: transparent
-        custom_path: ->
-          icon = "📁"
-          icon = "🏠" if @PATH == @HOME
-          icon = "⚙️" if @PATH.includes(".config")
-          icon = "💻" if @PATH.includes("dev") || @PATH.includes("code")
-          return "#{icon} #{@PATH} "
+        custom_fn: ->
+          local icon="📁"
+          [[ "$PWD" == "$HOME" ]] && icon="🏠"
+          [[ "$PWD" == *".config"* ]] && icon="⚙️"
+          [[ "$PWD" == *"dev"* || "$PWD" == *"code"* ]] && icon="💻"
+          echo "${icon} ${PWD} "
 
       # Smart git status with emoji indicators  
       - type: git
@@ -28,58 +28,60 @@ blocks:
         properties:
           fetch_status: true
           fetch_stash_count: true
-        smart_git: ->
-          return "" unless @IS_WORK_TREE
+        custom_fn: ->
+          [[ -z "$POSH_GIT_STATUS" ]] && return
           
-          status = "🌿 #{@HEAD}"
+          local status="🌿 $POSH_GIT_HEAD"
           
-          if @WORKING_CHANGED || @STAGING_CHANGED
-            status += " 📝" if @WORKING_CHANGED
-            status += " 📦" if @STAGING_CHANGED
+          if [[ "$POSH_GIT_WORKING_CHANGED" == "true" || "$POSH_GIT_STAGING_CHANGED" == "true" ]]; then
+            [[ "$POSH_GIT_WORKING_CHANGED" == "true" ]] && status+=" 📝"
+            [[ "$POSH_GIT_STAGING_CHANGED" == "true" ]] && status+=" 📦"
           else
-            status += " ✨"
-          end
+            status+=" ✨"
+          fi
           
-          status += " 📚#{@STASH_COUNT}" if @STASH_COUNT > 0
+          [[ "$POSH_GIT_STASH_COUNT" -gt 0 ]] && status+=" 📚$POSH_GIT_STASH_COUNT"
           
-          return "#{status} "
+          echo "${status} "
 
       # Conditional environment indicators
       - type: text
         style: plain
         foreground: '#FFB6C1'
         background: transparent
-        env_indicators: ->
-          indicators = []
-          indicators.push("🐳") if @ENABLE_DOCKER_PROMPT
-          indicators.push("⬢") if @ENABLE_NODE_PROMPT
-          indicators.push("🐍") if @VIRTUAL_ENV
-          indicators.push("🔗") if @SSH_CLIENT
+        custom_fn: ->
+          local indicators=()
+          [[ "$ENABLE_DOCKER_PROMPT" == "true" ]] && indicators+=("🐳")
+          [[ "$ENABLE_NODE_PROMPT" == "true" ]] && indicators+=("⬢")
+          [[ -n "$VIRTUAL_ENV" ]] && indicators+=("🐍")
+          [[ -n "$SSH_CLIENT" ]] && indicators+=("🔗")
           
-          return "" if indicators.empty?
-          return "[#{indicators.join(" ")}] "
+          [[ ${#indicators[@]} -eq 0 ]] && return
+          
+          local IFS=" "
+          echo "[${indicators[*]}] "
 
       # Dynamic prompt character based on context
       - type: text
         style: plain
         background: transparent
-        dynamic_prompt: ->
-          char = "❯"
-          color = "#00CED1"
+        custom_fn: ->
+          local char="❯"
+          local color="#00CED1"
           
-          if @IS_WORK_TREE
-            char = "🚀"
-            color = "#90EE90"
-          end
+          if git rev-parse --git-dir >/dev/null 2>&1; then
+            char="🚀"
+            color="#90EE90"
+          fi
           
-          if @SSH_CLIENT
-            char = "🌐"
-            color = "#FFB6C1"  
-          end
+          if [[ -n "$SSH_CLIENT" ]]; then
+            char="🌐"
+            color="#FFB6C1"
+          fi
           
-          if @ROOT
-            char = "👑"
-            color = "#FF6347"
-          end
+          if [[ "$EUID" -eq 0 ]]; then
+            char="👑"
+            color="#FF6347"
+          fi
           
-          return "#{char} "
+          echo "${char} "
