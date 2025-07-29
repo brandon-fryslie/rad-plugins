@@ -1,0 +1,13 @@
+#!/usr/bin/env zsh
+
+# Optional: Set plugin path explicitly if not installed system-wide
+RAD_SHELL_PLUGIN="${RAD_SHELL_PLUGIN:-${0:A:h:h}/shell-tools/rad-shell.zsh}"
+
+if [[ ! -f "$RAD_SHELL_PLUGIN" ]]; then
+  echo "rad-shell: Could not find plugin at $RAD_SHELL_PLUGIN" >&2
+  exit 1
+fi
+
+# Source the plugin and forward the command-line args
+source "$RAD_SHELL_PLUGIN"
+rad-shell "$@"

@@ -1,0 +1,14 @@
+# Minimal oh-my-posh configuration for testing
+version: 3
+final_space: true
+console_title_template: '{{ .Shell }} in {{ .Folder }}'
+
+blocks:
+  - type: prompt
+    alignment: left
+    segments:
+      - type: text
+        style: plain
+        template: 'test> '
+        foreground: '#ffffff'
+        background: 'transparent'

@@ -1,0 +1,122 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json
+
+palette:
+    primary_black: '#2E3440'
+    primary_cyan: '#88C0D0'
+    primary_green: '#A3BE8C'
+    primary_light: '#E5E9F0'
+    primary_orange: '#D08770'
+    primary_red: '#BF616A'
+    primary_subtle: '#4C566A'
+    primary_white: '#ECEFF4'
+    primary_yellow: '#EBCB8B'
+console_title_template: '{{ .Shell }} in {{ .Folder }}'
+blocks:
+    - type: prompt
+      alignment: left
+      segments:
+        - properties:
+            cache_duration: none
+          template: '{{ if .Env.SSH_CLIENT }}({{ .Env.USER }}@{{ .Env.HOSTNAME }}) {{ end }}'
+          foreground: '#2E3440'
+          background: transparent
+          type: session
+          style: plain
+        - properties:
+            cache_duration: none
+            home_icon: "~"
+            style: full
+          template: '({{ .Path }}) '
+          background: transparent
+          type: path
+          style: plain
+          foreground_templates:
+            - '{{ if .Writable }}#A3BE8C{{ else }}#EBCB8B{{ end }}'
+
+    - type: prompt
+      alignment: left
+      segments:
+        - properties:
+            cache_duration: none
+            fetch_stash_count: true
+            fetch_status: true
+            fetch_upstream_icon: true
+            fetch_user: true
+          template: (git) {{ .HEAD }} {{ if .Working.Changed }}S{{ end }}{{ if .Staging.Changed }}U{{ end }} {{ .HEAD }}{{ if .Upstream }} [{{ .Upstream }}{{ if .Behind }}-{{ .Behind }}{{ end }}{{ if .Ahead }}+{{ .Ahead }}{{ end }}]{{ end }}{{ if gt .StashCount 0 }} ({{ .StashCount }} stashed){{ end }}{{ if .User.Name }} ({{ .User.Name }}){{ end }}
+          foreground: '#E5E9F0'
+          background: transparent
+          type: git
+          style: plain
+      newline: true
+    - type: prompt
+      alignment: left
+      segments:
+        - properties:
+            cache_duration: none
+          template: '{{ if gt .Jobs 0 }}{{ .Jobs }} {{ end }}'
+          foreground: '#E5E9F0'
+          background: transparent
+          type: shell
+          style: plain
+        - properties:
+            cache_duration: none
+          template: '{{ if .Root }}# {{ else }}% {{ end }}'
+          background: transparent
+          type: root
+          style: plain
+          foreground_templates:
+            - '{{ if gt .Code 0 }}#BF616A{{ else }}#ECEFF4{{ end }}'
+      newline: true
+    - type: rprompt
+      segments:
+        - properties:
+            cache_duration: none
+          template: "{{ if .Error }}{{ else }}{{ if .Venv }}(\U0001F431 Venv: {{ .Venv }}) {{ end }}{{ end }}"
+          foreground: '#D08770'
+          background: transparent
+          type: python
+          style: plain
+        - properties:
+            cache_duration: none
+          template: '{{ if or .Env.ENABLE_NODE_PROMPT (and .Env.LAZY_NODE_PROMPT .Env.NVM_LOADED) }}⬢ {{ .Full }} {{ end }}'
+          foreground: '#A3BE8C'
+          background: transparent
+          type: node
+          style: plain
+        - properties:
+            cache_duration: none
+          template: '{{ if or .Env.ENABLE_NODE_PROMPT (and .Env.LAZY_NODE_PROMPT .Env.NVM_LOADED) }}npm {{ .Full }} {{ end }}'
+          foreground: '#EBCB8B'
+          background: transparent
+          type: npm
+          style: plain
+        - properties:
+            cache_duration: none
+          template: "{{ if .Env.ENABLE_DOCKER_PROMPT }}\U0001F433  {{ .Env.DOCKER_HOST | default \"unset\" }} {{ end }}"
+          foreground: '#88C0D0'
+          background: transparent
+          type: text
+          style: plain
+        - properties:
+            cache_duration: none
+            time_format: "15:04:05"
+          template: '{{ if .Env.BOURGIE_SHOW_TIME }}{{ .CurrentDate | date .Format }}{{ end }}'
+          foreground: '#4C566A'
+          background: transparent
+          type: time
+          style: plain
+        - properties:
+            cache_duration: none
+          template: '{{ if not .Env.SSH_CLIENT }}({{ .UserName }}){{ end }}'
+          foreground: '#2E3440'
+          background: transparent
+          type: session
+          style: plain
+
+version: 3
+final_space: true
+transient_prompt:
+  background: transparent
+  foreground: "#ffffff"
+  template: "{{ .Shell }}> "
+test: 123
