@@ -4,8 +4,8 @@
 ### keep your dotfiles.  Used by the following commands
 ### Requires the variable $DOTFILES_DIR to be set
 
-### .rc - alias that sources your ~/.zshrc file
-alias .rc="source $HOME/.zshrc"
+### .rc - alias that launches a new zsh so you can see changes in your config
+alias .rc="exec zsh"
 
 ### cd.rc - change directories to $DOTFILES_DIR
 cd.rc() { cd "$DOTFILES_DIR" }
