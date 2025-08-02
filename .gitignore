@@ -1,3 +1,4 @@
 .aider*
 .ipynb_checkpoints/
 *.zwc
+.claude
