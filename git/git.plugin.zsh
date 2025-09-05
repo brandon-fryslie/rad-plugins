@@ -34,6 +34,25 @@ alias lg="git log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%
 
 alias gdstat="git diff --stat"
 
+git-get-default-branch() {
+  local candidate
+
+  candidate="$(git config --get init.defaultBranch)"
+  [[ -n "${candidate}" ]]  && { echo "${candidate}"; return }
+
+  candidate="$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')"
+  [[ -n "${candidate}" ]]  && { echo "${candidate}"; return }
+
+  candidate="$(git rev-parse --verify --quiet "main" >/dev/null 2>&1)" && { echo "main"; return }
+  [[ -n "${candidate}" ]]  && { echo "${candidate}"; return }
+
+  candidate="$(git rev-parse --verify --quiet "master" >/dev/null 2>&1)" && { echo "master"; return }
+  [[ -n "${candidate}" ]]  && { echo "${candidate}"; return }
+
+  # main is the new default
+  return "main"
+}
+
 really-really-amend() {
   local branch_name="$(git rev-parse --abbrev-ref HEAD)"
   local upstream_remote
@@ -51,8 +70,11 @@ really-really-amend() {
     fi
   fi
 
-  if [[ $branch_name == master ]]; then
-    rad-red "Don't do this on master, dummy"
+  local default_branch
+  default_branch="$(git-get-default-branch)"
+
+  if [[ "${branch_name}" == "${default_branch}" ]]; then
+    rad-red "ERROR: Do not force push on the default branch (branch: ${default_branch})"
     return 1
   fi
 
@@ -60,7 +82,7 @@ really-really-amend() {
 
   # Amend commit if there were changes
   if ! git diff-index --quiet HEAD --; then
-    git-amend
+    git commit --amend --no-edit --reset-author
   fi
 
   git push -f ${upstream_remote} HEAD:$branch_name
