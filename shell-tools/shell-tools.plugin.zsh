@@ -45,3 +45,4 @@ fi
 # import exec-find
 source "${0:a:h}/exec-find-zaw.zsh"
 source "${0:a:h}/sgpt-zsh.zsh"
+source "${0:a:h}/macos-codesign.zsh"
