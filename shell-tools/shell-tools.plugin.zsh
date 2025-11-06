@@ -12,22 +12,11 @@
 # <rad directive prefix> <function list> <plugin id>
 # ☢ depends_on _revolver_start,_revolver_stop molovo/revolver
 
-#################################################################
-# cd to a dir in ~/projects
-# because we type that a lot
-# includes tab completions
-#################################################################
+# Import proj function (supports multiple project directories)
+source "${0:a:h}/proj.zsh"
 
-PROJECTS_DIR=${PROJECTS_DIR:-${HOME}/projects}
-
-function proj {
-  cd "${PROJECTS_DIR}/$1"
-}
-_proj_completion() {
-  reply=($(exec ls -m "${PROJECTS_DIR}" | sed -e 's/,//g' | tr -d '\n'))
-}
-compctl -K _proj_completion proj
-#################################################################
+# Import proj2 function (fzf-based project selector)
+source "${0:a:h}/proj2.zsh"
 
 ### cdtl - cd to git top level repo directory
 function cdtl() {
@@ -46,3 +35,12 @@ fi
 source "${0:a:h}/exec-find-zaw.zsh"
 source "${0:a:h}/sgpt-zsh.zsh"
 source "${0:a:h}/macos-codesign.zsh"
+source "${0:a:h}/tmux-test.zsh"
+
+### find-zsh-sources - Recursively find all files sourced from shell config
+# Capture the plugin directory at definition time
+typeset -g SHELL_TOOLS_PLUGIN_DIR="${0:a:h}"
+
+function find-zsh-sources() {
+  "${SHELL_TOOLS_PLUGIN_DIR}/bin/find_zsh_sources.py" "$@"
+}
