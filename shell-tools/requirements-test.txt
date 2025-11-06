@@ -1,0 +1,6 @@
+# Test dependencies for tmux automated testing
+# Install with: uv pip install -r requirements-test.txt
+
+pexpect>=4.9.0
+pytest>=8.0.0
+pytest-timeout>=2.0.0
