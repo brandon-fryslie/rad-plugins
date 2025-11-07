@@ -1,0 +1,8 @@
+#compdef proj2 p2
+
+# Tab completion for proj2 and p2 commands
+# This file should be on $FPATH for zsh to load it
+
+_arguments -s -S \
+  '(-p --project)'{-p,--project}'[Open specific project directly]:project name:' \
+  '--tmux-restart[Prepare active sessions for tmux server restart]'

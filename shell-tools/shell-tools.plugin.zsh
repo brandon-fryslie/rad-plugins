@@ -12,6 +12,9 @@
 # <rad directive prefix> <function list> <plugin id>
 # ☢ depends_on _revolver_start,_revolver_stop molovo/revolver
 
+# Add functions directory to FPATH for completions
+fpath=("${0:a:h}/functions" $fpath)
+
 # Import proj function (supports multiple project directories)
 source "${0:a:h}/proj.zsh"
 
