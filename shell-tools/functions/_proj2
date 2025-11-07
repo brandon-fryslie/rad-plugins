@@ -3,6 +3,107 @@
 # Tab completion for proj2 and p2 commands
 # This file should be on $FPATH for zsh to load it
 
-_arguments -s -S \
-  '(-p --project)'{-p,--project}'[Open specific project directly]:project name:' \
-  '--tmux-restart[Prepare active sessions for tmux server restart]'
+# Helper function to get project directories (mirrors _proj2_get_dirs)
+_proj2_get_project_dirs() {
+  local -a dirs
+
+  if [[ -n $PROJECTS_DIRS ]]; then
+    # Handle both array and whitespace-separated string
+    if [[ ${(t)PROJECTS_DIRS} == *array* ]]; then
+      dirs=("${PROJECTS_DIRS[@]}")
+    else
+      dirs=(${=PROJECTS_DIRS})
+    fi
+  elif [[ -n $PROJECTS_DIR ]]; then
+    dirs=("$PROJECTS_DIR")
+  else
+    # Default fallback
+    dirs=("${HOME}/projects")
+  fi
+
+  echo "${dirs[@]}"
+}
+
+# Helper function to collect all projects
+_proj2_collect_projects() {
+  local -a proj_dirs all_projects
+  local proj_dir parent_dir project
+
+  proj_dirs=(${(z)$(_proj2_get_project_dirs)})
+
+  for proj_dir in "${proj_dirs[@]}"; do
+    if [[ -d $proj_dir ]]; then
+      parent_dir="${proj_dir:t}"
+      for project in "$proj_dir"/*(/N:t); do
+        all_projects+=("${parent_dir}/${project}")
+      done
+    fi
+  done
+
+  echo "${all_projects[@]}"
+}
+
+# Complete project names with fuzzy matching
+_proj2_complete_projects() {
+  local -a projects matching_projects
+  local prefix
+
+  projects=(${(z)$(_proj2_collect_projects)})
+
+  if [[ ${#projects[@]} -eq 0 ]]; then
+    _message "no projects found"
+    return 1
+  fi
+
+  # Get the current word being completed
+  prefix="${words[CURRENT]}"
+
+  # If there's a prefix, filter projects using substring matching
+  if [[ -n $prefix ]]; then
+    for project in "${projects[@]}"; do
+      # Case-insensitive substring match anywhere in the project name
+      if [[ ${project:l} == *${prefix:l}* ]]; then
+        matching_projects+=("$project")
+      fi
+    done
+
+    if [[ ${#matching_projects[@]} -eq 0 ]]; then
+      # No matches, show all projects as fallback
+      matching_projects=("${projects[@]}")
+    fi
+  else
+    # No prefix, show all projects
+    matching_projects=("${projects[@]}")
+  fi
+
+  # Use compadd for more control over completion behavior
+  # -a: matching_projects is an array
+  # -U: unsorted (keep directory order)
+  # -d: display strings (shown in completion menu)
+  compadd -U -a matching_projects
+}
+
+# Main completion function
+_proj2() {
+  local curcontext="$curcontext" state line
+  typeset -A opt_args
+
+  # Define the completion spec with state handling
+  _arguments -C -s -S \
+    '(-p --project)'{-p,--project}'[Open specific project directly]:project:_proj2_complete_projects' \
+    '--tmux-restart[Prepare active sessions for tmux server restart]' \
+    '*:: :->args'
+
+  # Handle state for positional arguments (project names)
+  case $state in
+    args)
+      # Only complete projects for positional arguments
+      # (options are already handled by _arguments above)
+      _proj2_complete_projects
+      ;;
+  esac
+
+  return 0
+}
+
+_proj2 "$@"
