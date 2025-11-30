@@ -226,12 +226,10 @@ function proj2 {
     done
   fi
 
-  # Collect all projects, then fetch git status in parallel with timeout
+  # Collect all projects (git status loaded on-demand via CTRL-S)
   local -a active_with_mtime inactive_with_mtime
   local -a all_full_paths all_displays all_mtimes all_is_active
-  local mtime git_status display_full
-  local git_status_script="${_PROJ2_SCRIPT_DIR}/.proj2-git-status.sh"
-  local status_dir=$(mktemp -d)
+  local mtime
   local idx=0
 
   # Phase 1: Collect project metadata
@@ -257,63 +255,21 @@ function proj2 {
     fi
   done
 
-  # Phase 2: Launch all git status jobs in parallel
-  # Suppress job control notifications
-  setopt LOCAL_OPTIONS NO_NOTIFY NO_MONITOR
-
-  # Pure zsh timeout using background + sleep + kill
-  _p2_timeout_run() {
-    local timeout=$1 outfile=$2
-    shift 2
-    "$@" > "$outfile" &
-    local cmd_pid=$!
-    ( sleep $timeout; kill $cmd_pid 2>/dev/null ) &
-    local killer_pid=$!
-    wait $cmd_pid 2>/dev/null
-    kill $killer_pid 2>/dev/null
-    wait $killer_pid 2>/dev/null
-  }
-
+  # Phase 2: Build display strings (no git status yet - that's on-demand)
   for (( i=1; i <= idx; i++ )); do
-    full_path="${all_full_paths[$i]}"
-    if [[ -d "$full_path/.git" ]]; then
-      _p2_timeout_run 0.5 "${status_dir}/${i}" zsh "$git_status_script" "$full_path" &
-    else
-      echo "" > "${status_dir}/${i}" &
-    fi
-  done
-  wait
-
-  # Phase 3: Collect results and build display strings
-  for (( i=1; i <= idx; i++ )); do
-    full_path="${all_full_paths[$i]}"
     display="${all_displays[$i]}"
     mtime="${all_mtimes[$i]}"
     local is_active="${all_is_active[$i]}"
 
-    # Read git status from temp file
-    git_status=""
-    [[ -f "${status_dir}/${i}" ]] && git_status=$(<"${status_dir}/${i}")
-
-    # Build full display with git status
-    if [[ -n $git_status ]]; then
-      display_full="${display}  ${git_status}"
-    else
-      display_full="${display}"
-    fi
-
     # Check if this project has an active tmux session
     if [[ $is_active == 1 ]]; then
-      display_with_icon="● ${display_full}"
+      display_with_icon="● ${display}"
       active_with_mtime+=("${mtime}:${display_with_icon}")
     else
-      display_with_icon="${display_full}"
+      display_with_icon="${display}"
       inactive_with_mtime+=("${mtime}:${display_with_icon}")
     fi
   done
-
-  # Cleanup
-  rm -rf "$status_dir"
 
   # Sort each section by mtime (descending - most recent first)
   for entry in ${(On)active_with_mtime}; do
@@ -335,20 +291,34 @@ function proj2 {
   local initial_query="$1"
 
   # Build preview command
-  local preview_cmd="${(qq)_PROJ2_SCRIPT_DIR}/.proj2-preview.sh {} ${(@qq)proj_dirs}"
+  local preview_script="${_PROJ2_SCRIPT_DIR}/.proj2-preview.sh"
+  local preview_cmd="${(qq)preview_script} {} ${(@qq)proj_dirs}"
 
-  # Create temp files for active/inactive project lists (used by filter script)
+  # Create temp files for project lists and data
   local active_file=$(mktemp)
   local inactive_file=$(mktemp)
-  trap "rm -f '$active_file' '$inactive_file'" EXIT
+  local project_data_file=$(mktemp)
+  trap "rm -f '$active_file' '$inactive_file' '$project_data_file'" EXIT
 
   printf '%s\n' "${active_projects[@]}" > "$active_file"
   printf '%s\n' "${inactive_projects[@]}" > "$inactive_file"
 
-  # Build filter command
-  local filter_cmd="${(qq)_PROJ2_SCRIPT_DIR}/.proj2-filter.sh {q} ${(qq)active_file} ${(qq)inactive_file}"
+  # Write project data for git status loader (tab-separated: path, display, mtime, is_active)
+  for (( i=1; i <= idx; i++ )); do
+    printf '%s\t%s\t%s\t%s\n' "${all_full_paths[$i]}" "${all_displays[$i]}" "${all_mtimes[$i]}" "${all_is_active[$i]}"
+  done > "$project_data_file"
+
+  # Build filter command (simple filter without git status)
+  local filter_script="${_PROJ2_SCRIPT_DIR}/.proj2-filter.sh"
+  local filter_cmd="${(qq)filter_script} {q} ${(qq)active_file} ${(qq)inactive_file}"
+
+  # Build git status loader command (fetches git status and rebuilds list)
+  local status_loader_script="${_PROJ2_SCRIPT_DIR}/.proj2-load-status.sh"
+  local status_loader_cmd="${(qq)status_loader_script} {q} ${(qq)project_data_file} ${(qq)_PROJ2_SCRIPT_DIR}"
 
   # Use fzf to select project(s) with multiple actions
+  # CTRL-S loads git status for all projects
+  # CTRL-P toggles preview pane
   selected=$(fzf \
     --multi \
     --ansi \
@@ -356,10 +326,12 @@ function proj2 {
     --reverse \
     --prompt="Project: " \
     --query="$initial_query" \
-    --header="TAB=multi-select  CTRL-G=github" \
+    --header="CTRL-S=git status  CTRL-P=preview  CTRL-G=github" \
     --disabled \
     --bind "start:reload:$filter_cmd" \
     --bind "change:reload:$filter_cmd" \
+    --bind "ctrl-s:reload:$status_loader_cmd" \
+    --bind "ctrl-p:toggle-preview" \
     --bind "ctrl-g:execute-silent(echo {+} > /tmp/proj2-github)+accept" \
     --preview="$preview_cmd" \
     --preview-window=right:50%:wrap \
