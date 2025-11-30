@@ -226,18 +226,25 @@ _wa_switch_project() {
 }
 
 # Wrapper for git status zaw
+# Note: zaw-rad-git-status is a regular function, not a widget
 _wa_git_status() {
   zaw-rad-git-status
 }
 
 # Wrapper for git branch zaw
+# Note: zaw-git-branch is a ZLE widget, so we need to invoke it properly
 _wa_git_branch() {
-  zaw-git-branch
+  # Invoke the widget using zle command
+  # This works because workspace-actions itself is a widget (registered at end of file)
+  zle zaw-git-branch
 }
 
 # Wrapper for executable finder
+# Note: zaw-rad-exec-find is a ZLE widget, so we need to invoke it properly
 _wa_find_executable() {
-  zaw-rad-exec-find
+  # Invoke the widget using zle command
+  # This works because workspace-actions itself is a widget (registered at end of file)
+  zle zaw-rad-exec-find
 }
 
 # Tmux session switcher using fzf
@@ -277,3 +284,6 @@ _wa_register_action "exec" "Find Executable" \
 
 _wa_register_action "tses" "tmux Sessions" \
   "Switch to another tmux session" "tmux" "_wa_tmux_sessions"
+
+# Register workspace-actions as a ZLE widget so it can invoke other widgets
+zle -N workspace-actions
