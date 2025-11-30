@@ -37,6 +37,12 @@ source "${0:a:h}/sgpt-zsh.zsh"
 source "${0:a:h}/macos-codesign.zsh"
 source "${0:a:h}/tmux-test.zsh"
 
+# Import workspace-actions (contextual action menu)
+source "${0:a:h}/workspace-actions.zsh"
+
+# Key binding for workspace-actions
+bindkey '^[w' workspace-actions  # opt+w
+
 ### find-zsh-sources - Recursively find all files sourced from shell config
 # Capture the plugin directory at definition time
 typeset -g SHELL_TOOLS_PLUGIN_DIR="${0:a:h}"
