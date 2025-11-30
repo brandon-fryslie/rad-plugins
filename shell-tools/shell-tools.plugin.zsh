@@ -23,7 +23,7 @@ function cdtl() {
   local repo_dir
   repo_dir="$(git rev-parse --show-toplevel 2>&1)"
   [[ $? != 0 ]] || [[ -z $repo_dir ]] && { rad-red "Not a git repo"; return 1; }
-  cd $repo_dir
+  cd "$repo_dir"
 }
 
 # setup direnv
