@@ -70,6 +70,11 @@ really-really-amend() {
     fi
   fi
 
+  # If the upstream remote is using an HTTP URL, change to ssh
+  if [[ "$(git remote get-url origin 2>/dev/null)" =~ ^https:// ]]; then
+    git remote set-url origin $(git remote get-url origin | sed -E 's|https://([^/]+)/|git@\1:|')
+  fi
+
   local default_branch
   default_branch="$(git-get-default-branch)"
 
