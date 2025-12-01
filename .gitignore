@@ -3,3 +3,5 @@
 *.zwc
 .claude
 .agent_planning/
+__pycache__/
+*.pyc

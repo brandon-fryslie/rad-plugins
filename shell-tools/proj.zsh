@@ -64,7 +64,7 @@ _proj_completion() {
 
   # Collect all projects with parent directory prefix
   for proj_dir in "${proj_dirs[@]}"; do
-    if [[ -d $proj_dir ]]; then
+    if [[ -d "$proj_dir" ]]; then
       parent_dir="${proj_dir:t}"
       for project in "$proj_dir"/*(/N:t); do
         completions+=("${parent_dir}/${project}")
@@ -89,7 +89,7 @@ else
     proj_dirs=(${(z)$(_proj_get_dirs)})
 
     for proj_dir in "${proj_dirs[@]}"; do
-      if [[ -d $proj_dir ]]; then
+      if [[ -d "$proj_dir" ]]; then
         parent_dir="${proj_dir:t}"
         for project in "$proj_dir"/*(/N:t); do
           reply+=("${parent_dir}/${project}")
