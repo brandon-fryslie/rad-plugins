@@ -39,16 +39,16 @@ function zaw-rad-exec-find-run() {
 }
 
 function zaw-rad-exec-find-cd-run() {
-    zaw-rad-buffer-action "cd $(dirname $1) && ./$(basename $1)"
+    zaw-rad-buffer-action "cd \"$(dirname \"$1\")\" && \"./$(basename \"$1\")\""
 }
 
 function zaw-rad-exec-find-cd-edit-file() {
-    zaw-rad-buffer-action "cd $(dirname $1) && ${VISUAL:-${EDITOR:-vi}} $(basename $1)"
+    zaw-rad-buffer-action "cd \"$(dirname \"$1\")\" && ${VISUAL:-${EDITOR:-vi}} \"$(basename \"$1\")\""
 }
 
 function zaw-rad-exec-find-cd-edit-repo() {
     local repo_dir="$(git rev-parse --show-toplevel)"
-    zaw-rad-buffer-action "cd $repo_dir && ${VISUAL:-${EDITOR:-vi}} $repo_dir"
+    zaw-rad-buffer-action "cd \"$repo_dir\" && ${VISUAL:-${EDITOR:-vi}} \"$repo_dir\""
 }
 
 zaw-register-src -n rad-exec-find zaw-src-rad-exec-find
