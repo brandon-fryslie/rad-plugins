@@ -203,7 +203,130 @@ _proj2_get_dirs() {
   echo "${dirs[@]}"
 }
 
+# Validate project name for creation
+# Returns 0 if valid, 1 if invalid (with error message to stderr)
+_proj2_validate_project_name() {
+  local name="$1"
+
+  # Check empty
+  if [[ -z "$name" ]]; then
+    echo "Error: Project name cannot be empty" >&2
+    return 1
+  fi
+
+  # Check whitespace only
+  if [[ "$name" == *[^[:space:]]* ]]; then
+    : # Contains non-whitespace, this is good
+  else
+    echo "Error: Project name cannot be only whitespace" >&2
+    return 1
+  fi
+
+  # Check for /
+  if [[ "$name" == */* ]]; then
+    echo "Error: Project name cannot contain '/'" >&2
+    return 1
+  fi
+
+  # Check leading .
+  if [[ "$name" == .* ]]; then
+    echo "Error: Project name cannot start with '.'" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+# Select project directory from PROJECTS_DIRS
+# Returns the selected directory or the first/only directory
+_proj2_select_project_dir() {
+  local -a proj_dirs
+  proj_dirs=(${(z)$(_proj2_get_dirs)})
+
+  if [[ ${#proj_dirs[@]} -eq 0 ]]; then
+    echo "Error: No project directories configured" >&2
+    return 1
+  elif [[ ${#proj_dirs[@]} -eq 1 ]]; then
+    echo "${proj_dirs[1]}"
+    return 0
+  fi
+
+  # Multiple directories - use fzf
+  local selected
+  selected=$(printf '%s\n' "${proj_dirs[@]}" | fzf --prompt="Project directory: " --height=10 --reverse)
+
+  if [[ -z "$selected" ]]; then
+    return 1  # User cancelled
+  fi
+
+  echo "$selected"
+  return 0
+}
+
+# Create a new project directory with git init and README
+# Arguments: project_dir project_name
+# Returns 0 on success, 1 on failure
+_proj2_create_project() {
+  local project_dir="$1"
+  local project_name="$2"
+  local full_path="${project_dir}/${project_name}"
+
+  # Check if already exists
+  if [[ -d "$full_path" ]]; then
+    echo "Error: Project directory already exists: $full_path" >&2
+    return 1
+  fi
+
+  # Create directory
+  if ! mkdir -p "$full_path"; then
+    echo "Error: Failed to create directory: $full_path" >&2
+    return 1
+  fi
+
+  # Initialize git (check if git is available first)
+  if command -v git &> /dev/null; then
+    if ! (cd "$full_path" && git init); then
+      echo "Error: Failed to initialize git repository" >&2
+      rm -rf "$full_path"  # Cleanup
+      return 1
+    fi
+
+    # Create README
+    if ! echo "# ${project_name}" > "${full_path}/README.md"; then
+      echo "Error: Failed to create README.md" >&2
+      rm -rf "$full_path"  # Cleanup
+      return 1
+    fi
+
+    # Make initial commit
+    if ! (cd "$full_path" && git add README.md && git commit -m "Initial commit: Add README"); then
+      echo "Warning: Failed to create initial commit" >&2
+      # Don't fail completely - project is still usable
+    fi
+  else
+    echo "Warning: git not found, skipping repository initialization" >&2
+    # Still create README
+    if ! echo "# ${project_name}" > "${full_path}/README.md"; then
+      echo "Error: Failed to create README.md" >&2
+      rm -rf "$full_path"  # Cleanup
+      return 1
+    fi
+  fi
+
+  echo "Created new project: $full_path"
+  echo "$full_path"  # Return the path for use by caller
+  return 0
+}
+
 function proj2 {
+  # Argument parsing - check for --new flag
+  if [[ $1 == "--new" ]]; then
+    # TODO: Implement --new functionality in Phase 2
+    # For now, just stub it out
+    echo "Error: --new flag not yet implemented" >&2
+    return 1
+  fi
+
   local selected project_name proj_dir parent_dir action display display_with_icon
   local -a proj_dirs all_projects selected_items active_projects inactive_projects
   local full_path
