@@ -285,7 +285,7 @@ _proj2_create_project() {
 
   # Initialize git (check if git is available first)
   if command -v git &> /dev/null; then
-    if ! (cd "$full_path" && git init); then
+    if ! (cd "$full_path" && git init) &>/dev/null; then
       echo "Error: Failed to initialize git repository" >&2
       rm -rf "$full_path"  # Cleanup
       return 1
@@ -299,7 +299,7 @@ _proj2_create_project() {
     fi
 
     # Make initial commit
-    if ! (cd "$full_path" && git add README.md && git commit -m "Initial commit: Add README"); then
+    if ! (cd "$full_path" && git add README.md && git commit -m "Initial commit: Add README") &>/dev/null; then
       echo "Warning: Failed to create initial commit" >&2
       # Don't fail completely - project is still usable
     fi
@@ -313,18 +313,125 @@ _proj2_create_project() {
     fi
   fi
 
-  echo "Created new project: $full_path"
   echo "$full_path"  # Return the path for use by caller
+  return 0
+}
+
+# Handle non-interactive project creation: p2 --new <name> [--project-dir=N]
+_proj2_handle_new_project_noninteractive() {
+  local project_name="$1"
+  shift  # Remove project name from args
+
+  # Parse --project-dir option (default to 1 = first directory)
+  local project_dir_idx=1
+  for arg in "$@"; do
+    if [[ "$arg" =~ ^--project-dir=([0-9]+)$ ]]; then
+      project_dir_idx="${match[1]}"
+    fi
+  done
+
+  # Validate name
+  if [[ -z "$project_name" ]]; then
+    echo "Error: Project name required" >&2
+    echo "Usage: p2 --new <project-name> [--project-dir=N]" >&2
+    return 1
+  fi
+
+  _proj2_validate_project_name "$project_name" || return 1
+
+  # Get project directories
+  local -a proj_dirs
+  proj_dirs=(${(z)$(_proj2_get_dirs)})
+
+  # Validate index
+  if (( project_dir_idx < 1 || project_dir_idx > ${#proj_dirs[@]} )); then
+    echo "Error: --project-dir=$project_dir_idx out of range (1-${#proj_dirs[@]})" >&2
+    return 1
+  fi
+
+  local target_dir="${proj_dirs[$project_dir_idx]}"
+
+  # Create project
+  local full_path
+  full_path=$(_proj2_create_project "$target_dir" "$project_name") || return 1
+
+  echo "Created new project: $full_path"
+  return 0
+}
+
+# Handle interactive project creation: p2 --new
+_proj2_handle_new_project_interactive() {
+  local -a proj_dirs
+  proj_dirs=(${(z)$(_proj2_get_dirs)})
+
+  if [[ ${#proj_dirs[@]} -eq 0 ]]; then
+    echo "Error: No project directories configured" >&2
+    return 1
+  fi
+
+  local selected_dir="${proj_dirs[1]}"
+  local project_name=""
+
+  # Step 1: Select directory (if multiple)
+  if [[ ${#proj_dirs[@]} -gt 1 ]]; then
+    echo "proj2 new: Select project directory"
+    selected_dir=$(_proj2_select_project_dir) || {
+      echo "Cancelled"
+      return 1
+    }
+  fi
+
+  # Step 2: Prompt for name
+  echo "proj2 new: Please choose a project name"
+  echo "creating in project dir: ${selected_dir}"
+
+  # Retry loop for invalid names
+  while true; do
+    echo -n "> "
+    read -r project_name
+
+    # Check if user cancelled (empty input)
+    if [[ -z "$project_name" ]]; then
+      echo "Cancelled"
+      return 1
+    fi
+
+    # Validate name
+    if _proj2_validate_project_name "$project_name"; then
+      break  # Valid name, proceed
+    fi
+    # Invalid - loop will show prompt again
+    echo "Please try again:"
+  done
+
+  # Create project
+  local full_path
+  full_path=$(_proj2_create_project "$selected_dir" "$project_name") || return 1
+
+  echo "Created new project: $full_path"
+
+  # Navigate to project
+  _proj2_screen_session "$full_path"
+
+  echo "Done!"
   return 0
 }
 
 function proj2 {
   # Argument parsing - check for --new flag
   if [[ $1 == "--new" ]]; then
-    # TODO: Implement --new functionality in Phase 2
-    # For now, just stub it out
-    echo "Error: --new flag not yet implemented" >&2
-    return 1
+    shift  # Remove --new from args
+
+    # Determine interactive vs non-interactive
+    if [[ -z "$1" ]]; then
+      # Interactive mode: p2 --new
+      _proj2_handle_new_project_interactive
+      return $?
+    else
+      # Non-interactive mode: p2 --new <name> [--project-dir=N]
+      _proj2_handle_new_project_noninteractive "$@"
+      return $?
+    fi
   fi
 
   local selected project_name proj_dir parent_dir action display display_with_icon
