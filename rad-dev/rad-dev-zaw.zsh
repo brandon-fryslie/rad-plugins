@@ -14,6 +14,9 @@ function test-zaw-rad-dev() {
 
 ### Use this to view docs, edit a plugin, or view the source code of a plugin
 function zaw-src-rad-dev() {
+    # Force all zaw variables to be indexed arrays (fixes "bad set of key/value pairs" error)
+    # This is needed because something in the environment declares these as associative arrays
+    typeset -a candidates cand_descriptions actions act_descriptions options
     typeset -a ignores=()
     if [[ -n $RAD_DEV_IGNORE_BASE_PLUGINS ]]; then
       ignores=(-not -path "*/*oh-my-zsh*/*" -not -path "*/*zsh-users*/*" -not -path "*/*prezto*/*"  -not -path "*/*zsh-syntax-highlighting*/*")
@@ -32,23 +35,23 @@ function zaw-src-rad-dev() {
     desc="$(echo "$results" | perl -ne 'printf("%-40s %-20s\n", $1, $2) if m#^(?:.*/\.zgen(?:om)?/)([\w.-]+/[\w.-]+)/(?:([^/]+)/)?([^/]+)/[^/]+\.zsh$#g')"
     echo $desc | wc -l
 
-    : ${(A)candidates::=${(f)results}}
-    : ${(A)cand_descriptions::=${(f)desc}}
-    actions=(\
-        zaw-src-dev-doc \
-        zaw-src-dev-cd \
-        zaw-src-dev-edit_file \
-        zaw-src-dev-cd_edit_repo \
-        zaw-src-dev-print \
-        zaw-rad-append-to-buffer \
+    candidates=("${(f)results}")
+    cand_descriptions=("${(f)desc}")
+    actions=(
+        zaw-src-dev-doc
+        zaw-src-dev-cd
+        zaw-src-dev-edit_file
+        zaw-src-dev-cd_edit_repo
+        zaw-src-dev-print
+        zaw-rad-append-to-buffer
     )
-    act_descriptions=(\
-        "doc" \
-        "cd" \
-        "edit file" \
-        "cd + edit repo" \
-        "print source" \
-        "append to buffer" \
+    act_descriptions=(
+        "doc"
+        "cd"
+        "edit file"
+        "cd + edit repo"
+        "print source"
+        "append to buffer"
     )
     options=(-t "$title" -m)
 }
