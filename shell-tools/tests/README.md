@@ -1,10 +1,10 @@
 # Tmux Automated Test Suite
 
-Comprehensive automated testing for tmux keybindings and workflows using Python + pexpect.
+Comprehensive automated testing for tmux keybindings and ZLE widgets using **ptytest** - a real terminal testing framework.
 
 ## Overview
 
-This test suite verifies that tmux keybindings **actually work** by:
+This test suite verifies that tmux keybindings and ZLE widgets **actually work** by:
 - Spawning **real tmux processes** (not mocks)
 - Sending **actual keystroke bytes** (Ctrl-b h = `\x02h`)
 - Verifying **observable outcomes** (pane counts, content, status bars)
@@ -15,12 +15,20 @@ This test suite verifies that tmux keybindings **actually work** by:
 ## Installation
 
 ```bash
+cd shell-tools/tests
+
 # Create virtual environment
 uv venv
 
-# Install test dependencies
+# Activate and install dependencies (including ptytest)
 source .venv/bin/activate
 uv pip install -r requirements-test.txt
+```
+
+**Note:** ptytest is installed from `~/code/ptytest`. To install it locally first:
+```bash
+cd ~/code/ptytest
+uv pip install -e .
 ```
 
 ## Running Tests
@@ -35,32 +43,39 @@ pytest
 # Run only keybinding tests
 pytest -m keybinding
 
+# Run only ZLE widget tests
+pytest -m zle
+
+# Run only zaw-related tests
+pytest -m zaw
+
 # Run only fast tests (skip slow E2E tests)
 pytest -m "not slow"
 
 # Run specific test file
 pytest tests/keybindings/test_help_keybinding.py
+pytest tests/zle/test_zaw_rad_dev.py
 
 # Run with verbose output
 pytest -v
 
 # Run specific test
-pytest tests/keybindings/test_help_keybinding.py::test_ctrl_b_h_creates_help_pane
+pytest tests/zle/test_zaw_rad_dev.py::test_zaw_rad_dev_activates_without_error
 ```
 
 ## Test Structure
 
 ```
 tests/
-├── conftest.py                 # Pytest fixtures and configuration
-├── framework/
-│   ├── tmux_session.py        # TmuxSession class for real tmux control
-│   └── assertions.py          # Custom assertions (future)
+├── conftest.py                      # Pytest config (uses ptytest fixtures)
+├── requirements-test.txt            # Test dependencies including ptytest
 ├── keybindings/
-│   └── test_help_keybinding.py # Ctrl-b h keybinding tests (P0)
+│   └── test_help_keybinding.py      # Ctrl-b h keybinding tests
+├── zle/
+│   └── test_zaw_rad_dev.py          # ZLE widget tests (Option+Shift+D)
 ├── e2e/
-│   └── test_tmux_test_workflow.py # End-to-end workflow tests (P0)
-└── README.md                   # This file
+│   └── test_tmux_test_workflow.py   # End-to-end workflow tests
+└── README.md                        # This file
 ```
 
 ## Test Categories
@@ -72,6 +87,13 @@ Test individual tmux keybindings by sending real keystrokes:
 - `test_ctrl_b_h_help_pane_correct_height` - Help pane is 5 lines
 - `test_ctrl_b_h_help_pane_shows_content` - Help shows shortcuts
 
+### ZLE Widget Tests (`@pytest.mark.zle`, `@pytest.mark.zaw`)
+Test zsh ZLE widgets by sending escape sequences to the shell:
+- `test_zaw_rad_dev_activates_without_error` - Option+Shift+D opens zaw without errors
+- `test_zaw_rad_dev_shows_plugin_list` - Shows list of rad-shell plugins
+- `test_zaw_rad_dev_can_be_dismissed` - Can close with Escape
+- `test_zaw_rad_dev_multiple_activations` - Works reliably on repeated use
+
 ### End-to-End Tests (`@pytest.mark.e2e`, `@pytest.mark.slow`)
 Test complete user workflows from start to finish:
 - `test_help_pane_works_in_tmux_test_session` - Help works in 2-pane layout
@@ -80,15 +102,17 @@ Test complete user workflows from start to finish:
 
 ## How It Works
 
-### TmuxSession Class
+This test suite uses **ptytest**, a real terminal testing framework built on pexpect and tmux.
 
-The `TmuxSession` class provides a clean API for testing:
+### Using ptytest
 
 ```python
-from tests.framework.tmux_session import TmuxSession
+import pytest
+from ptytest import Keys
 
+@pytest.mark.keybinding
 def test_example(tmux_session):
-    # Send Ctrl-b h
+    # Send Ctrl-b h (tmux prefix + key)
     tmux_session.send_prefix_key('h')
 
     # Verify pane count
@@ -101,19 +125,43 @@ def test_example(tmux_session):
 
 ### Key Methods
 
-- `send_prefix_key(key)` - Send Ctrl-b + key as real bytes
+- `send_prefix_key(key)` - Send Ctrl-b + key as real bytes (tmux keybindings)
+- `send_raw(sequence)` - Send raw escape sequences to the shell (ZLE widgets)
+- `send_keys(keys, literal)` - Send keys via tmux send-keys command
 - `get_pane_count()` - Get number of panes via tmux list-panes
 - `get_pane_content(pane_id)` - Capture real terminal output
 - `get_pane_height(pane_id)` - Get pane height in lines
 - `get_status_bar()` - Capture status bar text
 - `verify_text_appears(text, timeout)` - Wait for text to appear
 
-### Fixtures
+### Keys Helper
 
-The `conftest.py` provides reusable fixtures:
+ptytest provides a `Keys` class with escape sequence constants:
+
+```python
+from ptytest import Keys
+
+# Common keys
+Keys.ESCAPE      # \x1b
+Keys.ENTER       # \r
+Keys.CTRL_C      # \x03
+Keys.CTRL_G      # \x07
+
+# Arrow keys
+Keys.UP, Keys.DOWN, Keys.LEFT, Keys.RIGHT
+
+# Helper methods
+Keys.ctrl('c')   # Returns Ctrl-C sequence
+Keys.meta('d')   # Returns Meta-D (Option-D on Mac)
+```
+
+### Fixtures (from ptytest)
+
+ptytest auto-registers these fixtures via pytest plugin:
 
 - `tmux_session` - Clean tmux session with user config (~/.tmux.conf)
 - `tmux_session_minimal` - Clean tmux session with no config
+- `tmux_session_factory` - Factory for creating multiple sessions
 
 Each fixture:
 - Creates isolated session with unique name
@@ -124,11 +172,6 @@ Each fixture:
 
 ### 1. Real Processes
 Tests spawn **actual tmux processes** using pexpect. No mocks can fake this.
-
-```python
-# This creates a REAL tmux session
-session = TmuxSession()
-```
 
 ### 2. Real Keystrokes
 Tests send **literal bytes** to tmux. The keybinding MUST work.
@@ -157,38 +200,7 @@ Each test verifies multiple aspects to prevent partial implementations:
 assert session.get_pane_count() == 2
 assert session.get_pane_height(help_pane) == 5
 assert "PANES" in session.get_pane_content(help_pane)
-assert session.get_global_option("@help_pane_id") != ""
 ```
-
-### 5. State Verification
-Tests verify state changes persist correctly:
-
-```python
-# Verify toggle OFF clears state
-session.send_prefix_key('h')  # Toggle off
-assert session.get_global_option("@help_pane_id") == ""
-```
-
-## Test Coverage
-
-Current test coverage (Sprint 1 - P0 complete):
-
-| Category | Tests Written | Status |
-|----------|--------------|--------|
-| Keybinding tests (Ctrl-b h) | 8 | ✅ Complete |
-| E2E workflow tests | 5 | ✅ Complete |
-| **TOTAL** | **13** | ✅ P0 Complete |
-
-### Future Test Coverage (Sprint 2+)
-
-| Category | Tests Planned | Priority |
-|----------|--------------|----------|
-| All keybindings (20+) | 20+ | P1 |
-| Status bar verification | 6 | P1 |
-| Integration tests | 5 | P1 |
-| Persistence tests | 4 | P1 |
-| Edge cases | 11 | P2 |
-| Performance tests | 7 | P2 |
 
 ## Adding New Tests
 
@@ -210,6 +222,36 @@ def test_ctrl_b_o_switches_panes(tmux_session):
 
     # Verify pane switched (check active pane)
     # ... add assertions ...
+```
+
+### Adding a ZLE Widget Test
+
+```python
+import pytest
+import time
+from ptytest import Keys
+
+# Define key sequences
+OPT_SHIFT_D = Keys.meta('D')  # ESC D (Option+Shift+D)
+ESC = Keys.ESCAPE
+CTRL_G = Keys.CTRL_G
+
+@pytest.mark.zle
+def test_my_zle_widget(tmux_session):
+    """Test a ZLE widget by sending escape sequences."""
+    # Wait for shell to initialize
+    time.sleep(0.5)
+
+    # Send escape sequence to trigger widget
+    tmux_session.send_raw(OPT_SHIFT_D, delay=0.5)
+
+    # Verify widget activated (check terminal output)
+    content = tmux_session.get_pane_content()
+    assert "expected output" in content
+
+    # Dismiss widget
+    tmux_session.send_raw(ESC, delay=0.2)
+    tmux_session.send_raw(CTRL_G, delay=0.2)
 ```
 
 ### Adding an E2E Test
@@ -241,13 +283,20 @@ Install tmux: `brew install tmux`
 - Kill old test sessions: `tmux kill-session -t pytest-tmux-*`
 - Increase timeout in pytest.ini
 
-### Tests Pass Locally but Fail in CI
-- Ensure tmux is installed in CI environment
-- Use explicit terminal dimensions (already configured)
-- Check tmux version compatibility
+### ptytest Not Found
+```bash
+# Ensure ptytest is installed
+cd ~/code/ptytest
+uv pip install -e .
+
+# Then install test requirements
+cd /path/to/shell-tools/tests
+source .venv/bin/activate
+uv pip install -r requirements-test.txt
+```
 
 ### Pexpect Errors
-- Ensure pexpect is installed: `uv pip install pexpect`
+- Ensure pexpect is installed (included in ptytest dependencies)
 - Check Python version (requires 3.8+)
 - Verify virtual environment is activated
 
@@ -261,47 +310,15 @@ This test suite follows the "un-gameable tests" philosophy:
 4. **Few but Critical** - Focus on high-value tests that cover essential user journeys
 5. **Fail Honestly** - When functionality is broken, tests fail clearly
 
-## Traceability
-
-### STATUS Report Gaps Addressed
-
-| Gap | Test(s) |
-|-----|---------|
-| Ctrl-b h never verified | `test_ctrl_b_h_creates_help_pane` |
-| No keystroke automation | All tests use `send_prefix_key()` |
-| No integration testing | `test_help_pane_works_in_tmux_test_session` |
-| Help pane persistence | `test_help_pane_survives_pane_switching` |
-| Toggle state tracking | `test_ctrl_b_h_help_pane_id_tracking` |
-
-### PLAN Items Validated
-
-| Item | Test(s) |
-|------|---------|
-| P0-1: pexpect installation | Framework uses pexpect throughout |
-| P0-2: Ctrl-b h test | All keybinding tests |
-| P0-3: Keybinding framework | `TmuxSession` class |
-| P0-4: E2E framework | All e2e tests |
-
-## Next Steps
-
-Sprint 2 will add:
-- Tests for all 20+ keybindings (P1-1)
-- Status bar command echo verification (P1-2)
-- Full help popup test (P1-3)
-- More integration tests (P1-5)
-- Persistence tests (P1-6)
-
-See `PLAN-2025-11-06-003740.md` for full roadmap.
-
 ## Contributing
 
 When adding tests:
 1. Use `tmux_session` fixture (automatic cleanup)
-2. Add `@pytest.mark.keybinding` or `@pytest.mark.e2e`
+2. Add appropriate markers: `@pytest.mark.keybinding`, `@pytest.mark.zle`, `@pytest.mark.e2e`
 3. Add `@pytest.mark.slow` for tests >2 seconds
 4. Write descriptive docstrings explaining the user workflow
 5. Verify multiple observable outcomes (not just one assertion)
-6. Add comments explaining why test is un-gameable
+6. Use `from ptytest import Keys` for escape sequences
 
 ## License
 

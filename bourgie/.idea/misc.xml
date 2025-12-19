@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ComposerSettings">
+    <execution />
+  </component>
+  <component name="ProjectResources">
+    <resource url="http://www.apple.com/DTDs/PropertyList-1.0.dtd" location="$USER_HOME$/Library/Caches/JetBrains/IntelliJIdea2023.2/extResources/c3961c84_PropertyList-1.0.dtd" />
+  </component>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_23" default="true" project-jdk-name="23" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/out" />
+  </component>
+</project>

@@ -1,6 +1,10 @@
 # Test dependencies for tmux automated testing
 # Install with: uv pip install -r requirements-test.txt
 
-pexpect>=4.9.0
+# ptytest - real terminal testing framework (local install)
+# Install from local: uv pip install -e ~/code/ptytest
+# Or when published: ptytest>=0.1.0
+-e file:///Users/bmf/code/ptytest
+
 pytest>=8.0.0
 pytest-timeout>=2.0.0
