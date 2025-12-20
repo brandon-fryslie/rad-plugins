@@ -203,6 +203,7 @@ _proj2_get_dirs() {
   echo "${dirs[@]}"
 }
 
+function proj2z {
 # Validate project name for creation
 # Returns 0 if valid, 1 if invalid (with error message to stderr)
 _proj2_validate_project_name() {
@@ -645,5 +646,5 @@ function proj2 {
   esac
 }
 
-# Create alias 'p2' for quick access
-alias p2='proj2'
+# Create alias 'p2z' for quick access
+alias p2z='proj2z'
