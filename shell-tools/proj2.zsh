@@ -1,9 +1,9 @@
-# proj2 (p2) - cd to a project directory using fzf
+# proj2z (p2z) - cd to a project directory using fzf
 # Supports multiple project directories via PROJECTS_DIRS (array)
 # or single directory via PROJECTS_DIR (backward compatibility)
 
 # Get the directory where this script is located
-typeset -g _PROJ2_SCRIPT_DIR="${${(%):-%x}:A:h}"
+typeset -g _PROJ2Z_SCRIPT_DIR="${${(%):-%x}:A:h}"
 
 # ANSI color codes matching p10k theme
 typeset -g _P2_RESET=$'\033[0m'
@@ -20,7 +20,7 @@ typeset -g _P2_CONFLICT=$'\033[38;5;196m'
 
 # Get compact git status for a project directory (p10k style)
 # If second arg is a file path, writes result there (for async use)
-_proj2_git_status() {
+_proj2z_git_status() {
   local project_path="$1"
   local output_file="$2"
 
@@ -120,7 +120,7 @@ _proj2_git_status() {
 }
 
 # Create or attach to tmux session for project
-_proj2_screen_session() {
+_proj2z_screen_session() {
   local project_path="$1"
   local session_name="${project_path:t}"  # Use directory name as session name
 
@@ -142,7 +142,7 @@ _proj2_screen_session() {
   [[ -n "$TMUX" ]] && inside_tmux=1
 
   # Helper to attach/switch to session (uses switch-client if inside tmux)
-  _proj2_goto_session() {
+  _proj2z_goto_session() {
     local target="$1"
     if (( inside_tmux )); then
       tmux switch-client -t "$target"
@@ -154,7 +154,7 @@ _proj2_screen_session() {
   # Check if session already exists
   if tmux has-session -t "$session_name" 2>/dev/null; then
     echo "Switching to tmux session: $session_name"
-    _proj2_goto_session "$session_name"
+    _proj2z_goto_session "$session_name"
   else
     echo "Creating new tmux session: $session_name"
 
@@ -167,7 +167,7 @@ _proj2_screen_session() {
       # Select the shell window
       tmux select-window -t "$session_name:shell"
       # Attach/switch to the session
-      _proj2_goto_session "$session_name"
+      _proj2z_goto_session "$session_name"
     else
       # No clod available - behavior differs if inside tmux or not
       if (( inside_tmux )); then
@@ -183,7 +183,7 @@ _proj2_screen_session() {
 }
 
 # Get project directories (dynamically checks variables each time)
-_proj2_get_dirs() {
+_proj2z_get_dirs() {
   local -a dirs
 
   if [[ -n $PROJECTS_DIRS ]]; then
@@ -203,10 +203,9 @@ _proj2_get_dirs() {
   echo "${dirs[@]}"
 }
 
-function proj2z {
 # Validate project name for creation
 # Returns 0 if valid, 1 if invalid (with error message to stderr)
-_proj2_validate_project_name() {
+_proj2z_validate_project_name() {
   local name="$1"
 
   # Check empty
@@ -240,9 +239,9 @@ _proj2_validate_project_name() {
 
 # Select project directory from PROJECTS_DIRS
 # Returns the selected directory or the first/only directory
-_proj2_select_project_dir() {
+_proj2z_select_project_dir() {
   local -a proj_dirs
-  proj_dirs=(${(z)$(_proj2_get_dirs)})
+  proj_dirs=(${(z)$(_proj2z_get_dirs)})
 
   if [[ ${#proj_dirs[@]} -eq 0 ]]; then
     echo "Error: No project directories configured" >&2
@@ -267,7 +266,7 @@ _proj2_select_project_dir() {
 # Create a new project directory with git init and README
 # Arguments: project_dir project_name
 # Returns 0 on success, 1 on failure
-_proj2_create_project() {
+_proj2z_create_project() {
   local project_dir="$1"
   local project_name="$2"
   local full_path="${project_dir}/${project_name}"
@@ -319,7 +318,7 @@ _proj2_create_project() {
 }
 
 # Handle non-interactive project creation: p2 --new <name> [--project-dir=N]
-_proj2_handle_new_project_noninteractive() {
+_proj2z_handle_new_project_noninteractive() {
   local project_name="$1"
   shift  # Remove project name from args
 
@@ -338,11 +337,11 @@ _proj2_handle_new_project_noninteractive() {
     return 1
   fi
 
-  _proj2_validate_project_name "$project_name" || return 1
+  _proj2z_validate_project_name "$project_name" || return 1
 
   # Get project directories
   local -a proj_dirs
-  proj_dirs=(${(z)$(_proj2_get_dirs)})
+  proj_dirs=(${(z)$(_proj2z_get_dirs)})
 
   # Validate index
   if (( project_dir_idx < 1 || project_dir_idx > ${#proj_dirs[@]} )); then
@@ -354,16 +353,16 @@ _proj2_handle_new_project_noninteractive() {
 
   # Create project
   local full_path
-  full_path=$(_proj2_create_project "$target_dir" "$project_name") || return 1
+  full_path=$(_proj2z_create_project "$target_dir" "$project_name") || return 1
 
   echo "Created new project: $full_path"
   return 0
 }
 
 # Handle interactive project creation: p2 --new
-_proj2_handle_new_project_interactive() {
+_proj2z_handle_new_project_interactive() {
   local -a proj_dirs
-  proj_dirs=(${(z)$(_proj2_get_dirs)})
+  proj_dirs=(${(z)$(_proj2z_get_dirs)})
 
   if [[ ${#proj_dirs[@]} -eq 0 ]]; then
     echo "Error: No project directories configured" >&2
@@ -375,15 +374,15 @@ _proj2_handle_new_project_interactive() {
 
   # Step 1: Select directory (if multiple)
   if [[ ${#proj_dirs[@]} -gt 1 ]]; then
-    echo "proj2 new: Select project directory"
-    selected_dir=$(_proj2_select_project_dir) || {
+    echo "proj2z new: Select project directory"
+    selected_dir=$(_proj2z_select_project_dir) || {
       echo "Cancelled"
       return 1
     }
   fi
 
   # Step 2: Prompt for name
-  echo "proj2 new: Please choose a project name"
+  echo "proj2z new: Please choose a project name"
   echo "creating in project dir: ${selected_dir}"
 
   # Retry loop for invalid names
@@ -398,7 +397,7 @@ _proj2_handle_new_project_interactive() {
     fi
 
     # Validate name
-    if _proj2_validate_project_name "$project_name"; then
+    if _proj2z_validate_project_name "$project_name"; then
       break  # Valid name, proceed
     fi
     # Invalid - loop will show prompt again
@@ -407,18 +406,18 @@ _proj2_handle_new_project_interactive() {
 
   # Create project
   local full_path
-  full_path=$(_proj2_create_project "$selected_dir" "$project_name") || return 1
+  full_path=$(_proj2z_create_project "$selected_dir" "$project_name") || return 1
 
   echo "Created new project: $full_path"
 
   # Navigate to project
-  _proj2_screen_session "$full_path"
+  _proj2z_screen_session "$full_path"
 
   echo "Done!"
   return 0
 }
 
-function proj2 {
+function proj2z {
   # Argument parsing - check for --new flag
   if [[ $1 == "--new" ]]; then
     shift  # Remove --new from args
@@ -426,11 +425,11 @@ function proj2 {
     # Determine interactive vs non-interactive
     if [[ -z "$1" ]]; then
       # Interactive mode: p2 --new
-      _proj2_handle_new_project_interactive
+      _proj2z_handle_new_project_interactive
       return $?
     else
       # Non-interactive mode: p2 --new <name> [--project-dir=N]
-      _proj2_handle_new_project_noninteractive "$@"
+      _proj2z_handle_new_project_noninteractive "$@"
       return $?
     fi
   fi
@@ -441,12 +440,12 @@ function proj2 {
 
   # Check if fzf is available
   if ! command -v fzf &> /dev/null; then
-    echo "Error: fzf is not installed. Please install fzf to use proj2." >&2
+    echo "Error: fzf is not installed. Please install fzf to use proj2z." >&2
     return 1
   fi
 
   # Get current project directories
-  proj_dirs=(${(z)$(_proj2_get_dirs)})
+  proj_dirs=(${(z)$(_proj2z_get_dirs)})
 
   # Get list of active tmux sessions
   local -A project_paths active_sessions
@@ -522,7 +521,7 @@ function proj2 {
   local initial_query="$1"
 
   # Build preview command
-  local preview_script="${_PROJ2_SCRIPT_DIR}/.proj2-preview.sh"
+  local preview_script="${_PROJ2Z_SCRIPT_DIR}/.proj2z-preview.sh"
   local preview_cmd="${(qq)preview_script} {} ${(@qq)proj_dirs}"
 
   # Create temp files for project lists and data
@@ -540,12 +539,12 @@ function proj2 {
   done > "$project_data_file"
 
   # Build filter command (simple filter without git status)
-  local filter_script="${_PROJ2_SCRIPT_DIR}/.proj2-filter.sh"
+  local filter_script="${_PROJ2Z_SCRIPT_DIR}/.proj2z-filter.sh"
   local filter_cmd="${(qq)filter_script} {q} ${(qq)active_file} ${(qq)inactive_file}"
 
   # Build git status loader command (fetches git status and rebuilds list)
-  local status_loader_script="${_PROJ2_SCRIPT_DIR}/.proj2-load-status.sh"
-  local status_loader_cmd="${(qq)status_loader_script} {q} ${(qq)project_data_file} ${(qq)_PROJ2_SCRIPT_DIR}"
+  local status_loader_script="${_PROJ2Z_SCRIPT_DIR}/.proj2z-load-status.sh"
+  local status_loader_cmd="${(qq)status_loader_script} {q} ${(qq)project_data_file} ${(qq)_PROJ2Z_SCRIPT_DIR}"
 
   # Use fzf to select project(s) with multiple actions
   # CTRL-S loads git status for all projects
@@ -618,7 +617,7 @@ function proj2 {
       local first="${selected_items[1]}"
       full_path=$(_lookup_path "$first")
       if [[ -d "$full_path" ]]; then
-        _proj2_screen_session "$full_path"
+        _proj2z_screen_session "$full_path"
       else
         echo "Error: Directory not found for: $first" >&2
         return 1
