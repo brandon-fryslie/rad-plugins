@@ -24,33 +24,34 @@ function my_git_formatter() {
   fi
 
   if (( $1 )); then
-    # Styling for up-to-date Git status
-    local vcs_empty="%240F"
-    local vcs_good="%76F"
-    local vcs_caution="%178F"
-    local vcs_warn="%166F"
-    local vcs_error='%160F'
-    local vcs_redalert="%196F"
+    # Styling for up-to-date Git status (matching git-taculous.zsh-theme)
+    local vcs_empty='%F{240}'
+    local vcs_good='%F{green}'
+    local vcs_caution='%F{yellow}'
+    local vcs_warn='%F{166}'
+    local vcs_error='%F{red}'
+    local vcs_redalert='%F{196}'
 
-    local       meta='%246F'  # grey foreground
-    local      clean='%76F'   # green foreground
-    local   modified='%178F'  # yellow foreground
-    local   staged='%40F'
-    local   unstaged='%160F'
-    local   vcs_ahead='%039F'
-    local  vcs_behind='%178F'
-    local  vcs_remote='%028F'
-    local conflicted='%196F'  # red foreground
+    local       meta='%F{black}%B'  # black bold (like git-taculous)
+    local      clean='%F{green}'    # green foreground
+    local   modified='%F{yellow}'   # yellow foreground
+    local     staged='%F{green}'    # green for staged (S)
+    local   unstaged='%F{red}'      # red for unstaged (U)
+    local  untracked='%F{cyan}'     # cyan for untracked
+    local  vcs_ahead='%F{green}'    # green for ahead (+)
+    local vcs_behind='%F{red}'      # red for behind (-)
+    local vcs_remote='%F{028}'      # dark green for remote
+    local conflicted='%F{red}'      # red foreground
   else
     # Styling for incomplete and stale Git status
-    local       meta='%244F'  # grey foreground
-    local      clean='%244F'  # grey foreground
-    local   modified='%244F'  # grey foreground
-    local  untracked='%244F'  # grey foreground
-    local conflicted='%244F'  # grey foreground
+    local       meta='%F{244}'  # grey foreground
+    local      clean='%F{244}'  # grey foreground
+    local   modified='%F{244}'  # grey foreground
+    local  untracked='%F{244}'  # grey foreground
+    local conflicted='%F{244}'  # grey foreground
   fi
 
-  local vcs_reset="%b%u${meta}"
+  local vcs_reset="%b%u%F{default}"
 
   # staged unstaged ahead behind
   function _staged_ahead_commits() {
