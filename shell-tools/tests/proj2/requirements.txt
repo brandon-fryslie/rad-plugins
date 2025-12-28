@@ -1,0 +1,10 @@
+# Python requirements for proj2 test suite
+
+# Core testing framework
+pytest>=7.0.0
+
+# PTY testing framework for terminal apps
+ptytest>=0.1.0
+
+# Optional: coverage reporting
+pytest-cov>=4.0.0

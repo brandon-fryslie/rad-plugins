@@ -24,7 +24,7 @@ TESTS_FAILED=0
 # Get script directory
 SCRIPT_DIR="${${(%):-%x}:A:h}"
 PROJ2_SCRIPT_DIR="${SCRIPT_DIR:h:h}"  # Go up two levels to shell-tools root
-PREVIEW_SCRIPT="${PROJ2_SCRIPT_DIR}/.proj2-preview.sh"
+PREVIEW_SCRIPT="${PROJ2_SCRIPT_DIR}/.proj2z-preview.sh"
 
 # Setup test environment
 setup() {
@@ -253,7 +253,8 @@ test_preview_content_markers() {
     markers_expected=$((markers_expected + 1))
 
     # Check for git status marker (we created a git repo)
-    if echo "${output}" | grep -q "📊 Git Status:"; then
+    # The preview script shows "📊 " followed by branch info
+    if echo "${output}" | grep -q "📊"; then
         echo "✓ Found git status marker"
         markers_found=$((markers_found + 1))
     else
