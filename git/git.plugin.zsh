@@ -4,6 +4,8 @@ if [[ -n "$ZSH_VERSION" ]]; then
   [[ -f "${0:a:h}/git-zaw.zsh" ]] && source "${0:a:h}/git-zaw.zsh"
   [[ -f "${0:a:h}/git-status-zaw.zsh" ]] && source "${0:a:h}/git-status-zaw.zsh"
   [[ -f "${0:a:h}/git-branch-zaw.zsh" ]] && source "${0:a:h}/git-branch-zaw.zsh"
+  [[ -f "${0:a:h}/git-worktree.zsh" ]] && source "${0:a:h}/git-worktree.zsh"
+  [[ -f "${0:a:h}/git-worktree-zaw.zsh" ]] && source "${0:a:h}/git-worktree-zaw.zsh"
 fi
 
 rad_plugin_init_hooks+=("rad_git_plugin_init_hook:${script_dir}")
@@ -21,6 +23,13 @@ rad_git_plugin_init_hook() {
     git config --global alias.co checkout
     git config --global alias.st status
   fi
+
+  # Register worktree completions (runs after compinit)
+  if (( $+functions[compdef] )); then
+    compdef _wt-diff wt-diff
+    compdef _wt-push wt-push
+    compdef _wt-pull wt-pull
+  fi
 }
 
 alias gb="git for-each-ref --sort=committerdate refs/heads/ --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(color:red)%(objectname:short)%(color:reset) - %(contents:subject) - %(authorname) (%(color:green)%(committerdate:relative)%(color:reset))'"
@@ -32,7 +41,7 @@ alias gs="git status"
 alias gst="git stash"
 alias lg="git log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%C(bold blue)<%an>%Creset' --abbrev-commit"
 
-alias gdstat="git diff --stat"
+alias gdst="git diff --stat"
 
 git-get-default-branch() {
   local candidate
@@ -108,6 +117,7 @@ function gh-open() {
 
   open "$github_base_url/tree/${branch_name}"
 }
+
 
 ### Testing this out: opt+shift+o x2 for gh-open
 #bindkey '^[O^[O' gh-open
