@@ -8,6 +8,8 @@ bindkey '^[H' zaw-rad-docker-dhost
 
 function zaw-src-rad-docker-dhost() {
     local title="docker hosts"
+    local -a candidates cand_descriptions actions act_descriptions options
+
     : ${(A)candidates::=$(echo "${(v)DHOST_ALIAS_MAP}" | tr ' ' "\n")}
     : ${(A)cand_descriptions::=$(echo "${(k)DHOST_ALIAS_MAP}" | tr ' ' "\n")}
 

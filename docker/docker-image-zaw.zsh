@@ -7,6 +7,9 @@ bindkey '^[<' zaw-rad-docker-image
 ### key: option + shift + <
 
 function zaw-src-rad-docker-image() {
+    local title desc
+    local -a candidates actions act_descriptions options
+
     title="$(docker images | head -n 1)"
     desc="$(docker images | tail -n +2)"
     : ${(A)candidates::=${(f)desc}}

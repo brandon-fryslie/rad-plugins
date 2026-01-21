@@ -7,6 +7,10 @@ bindkey '^[>' zaw-rad-docker-container
 ### key: option + shift + >
 
 function zaw-src-rad-docker-container() {
+    # Force all zaw variables to be indexed arrays (fixes "bad set of key/value pairs" error)
+    # This is needed because something in the environment declares these as associative arrays
+    typeset -a candidates cand_descriptions actions act_descriptions options
+
     local format_string="table {{ .Names }}\\t{{ .Image }}\\t{{ .Status }}\\t{{ .Ports }}\\t{{ .ID }}"
     local docker_ps_results="$(docker ps -a --format $format_string)"
     local title="$(echo $docker_ps_results | head -n 1)"
