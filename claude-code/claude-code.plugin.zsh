@@ -1,7 +1,7 @@
 # Ensure this runs in a subshell - note the parens rather than curly braces
 clod () (
     export SHELL=bash
-    claude-chill -- claude --dangerously-skip-permissions "$@"
+    claude --dangerously-skip-permissions "$@"
 )
 
 mlod() {
