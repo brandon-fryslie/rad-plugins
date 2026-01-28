@@ -6,10 +6,10 @@ clod () (
 
 mlod() {
   local claude_config_dir="$DOTFILES_DIR/config/claude"
-  dotenvx run -f $claude_config_dir/.env.minimax -- clod --settings $claude_config_dir/settings.minimax.json "$@"
+  dotenvx run -f $claude_config_dir/.env.minimax -- claude --dangerously-skip-permissions --settings $claude_config_dir/settings.minimax.json "$@"
 }
 
 zlod() {
   local claude_config_dir="$DOTFILES_DIR/config/claude"
-  dotenvx run -f $claude_config_dir/.env.zai -- clod --dangerously-skip-permissions --settings $claude_config_dir/settings.zai.json "$@"
+  dotenvx run -f $claude_config_dir/.env.zai -- claude --dangerously-skip-permissions --settings $claude_config_dir/settings.zai.json "$@"
 }
