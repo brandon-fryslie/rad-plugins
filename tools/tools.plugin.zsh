@@ -16,7 +16,7 @@ tool_add_path pnpm "$HOME/node_modules/.bin"
 tool_add_path cargo "$HOME/.cargo/bin"
 
 # python pyenv
-tool_add_path pyenv "$HOME/.pyenv/bin"
+# tool_add_path pyenv "$HOME/.pyenv/bin"
 
 # uv
 tool_add_path uv "$(uv tool dir)"
