@@ -22,8 +22,9 @@ typeset -g POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(
   command_execution_time  # duration of the last command
   background_jobs         # presence of background jobs
   direnv                  # direnv status
-  virtualenv              # python virtual environment
-  pyenv                   # python environment
+ #
+               # python virtual environment
+ # pyenv                   # python environment
   goenv                   # go environment
   nodenv                  # node.js version from nodenv
   nvm                     # node.js version from nvm
