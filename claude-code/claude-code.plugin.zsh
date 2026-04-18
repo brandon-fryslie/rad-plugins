@@ -1,7 +1,7 @@
 # Ensure this runs in a subshell - note the parens rather than curly braces
 clod () (
     export SHELL=bash
-    claude --dangerously-skip-permissions "$@"
+    happy claude --dangerously-skip-permissions "$@"
 )
 
 cclod() {
@@ -26,7 +26,7 @@ cclod() {
     if ! tmux has-session -t "$session_name" 2>/dev/null; then
       tmux new-session -s "$session_name" -d -c "$PWD"
     fi
-    target="$session_name:0"
+    target="$session_name:1"
     need_attach=1
   fi
 
@@ -38,6 +38,7 @@ cclod() {
     # Check if this pane or its children are running cc-dump
     if pgrep -P $pane_pid -f 'cc-dump.*--port' >/dev/null 2>&1; then
       cc_dump_running=1
+      echo "cc-dump is running"
       local cc_dump_pid=$(pgrep -P $pane_pid -f 'cc-dump.*--port')
       port=$(ps -p $cc_dump_pid -o args= | grep -o -- '--port [0-9]\+' | awk '{print $2}')
       break
@@ -53,14 +54,28 @@ cclod() {
   # If only one pane, split vertically and potentially start cc-dump
   if [[ $pane_count -eq 1 ]]; then
     tmux split-window -h -t "$target" -c "$PWD"
-    # Only start cc-dump if it's not already running
-    if [[ $cc_dump_running -eq 0 ]]; then
-      tmux send-keys -t "${target}.1" "cc-dump --port $port" C-m
-    fi
   fi
 
-  # Run clod in left pane with ANTHROPIC_BASE_URL set to local port
-  tmux send-keys -t "${target}.0" "ANTHROPIC_BASE_URL=http://127.0.0.1:$port clod \"$@\"" C-m
+  copilot_api_proxy_running=0
+  curl -sS 127.0.0.1:4141 | grep -q "Server running" && copilot_api_proxy_running=1
+  # Only start cc-dump if it's not already running
+  if [[ $cc_dump_running -eq 0 ]]; then
+    # check for copilot-api proxy
+    local cc_dump_target_arg=""
+    curl -sS 127.0.0.1:4141 | grep -q "Server running" && cc_dump_target_arg="--target http://127.0.0.1:4141"
+
+    echo "cc_dump_target_arg=${cc_dump_target_arg}"
+    tmux send-keys -t "${target}.1" "cc-dump --port $port ${cc_dump_target_arg}" C-m
+  fi
+
+  # Run clod in right pane with ANTHROPIC_BASE_URL set to local port
+  clod_command="clod"
+  curl -sS 127.0.0.1:4141 | grep -q "Server running" && {
+    echo "copilot proxy is running.  using colpod and port ${port}"
+    export CLAUDE_PROXY_PORT=$port
+    clod_command="coplod"
+  }
+  tmux send-keys -t "${target}.2" "ANTHROPIC_BASE_URL=http://127.0.0.1:$port ${clod_command} $*" C-m
 
   # Attach to session if we weren't already in tmux
   [[ $need_attach -eq 1 ]] && tmux attach-session -t "$session_name"
@@ -100,6 +115,18 @@ zlod() {
 }
 
 coplod() {
+  local dump_port="${CLAUDE_PROXY_PORT:-4141}"
+
+  ANTHROPIC_AUTH_TOKEN=sk-dummy \
+  ANTHROPIC_MODEL=claude-opus-4.6 \
+  ANTHROPIC_DEFAULT_HAIKU_MODEL=claude-haiku-4.5 \
+  DISABLE_NON_ESSENTIAL_MODEL_CALLS=1 \
+  CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
+  ANTHROPIC_BASE_URL=http://127.0.0.1:$dump_port \
+    clod "$@"
+}
+
+coplod-tmux() {
   local copilot_port=4141
   local copilot_session="copilot-api"
   local session_name="${PWD:t}"
@@ -155,7 +182,7 @@ coplod() {
   tmux send-keys -t "${target}.1" "cc-dump --port $dump_port --target http://localhost:${copilot_port}" C-m
 
   # Left pane: start clod with copilot-api env vars (inline, not exported)
-  tmux send-keys -t "${target}.0" "ANTHROPIC_AUTH_TOKEN=sk-dummy ANTHROPIC_MODEL=claude-opus-4.6 ANTHROPIC_DEFAULT_HAIKU_MODEL=gpt-5-mini DISABLE_NON_ESSENTIAL_MODEL_CALLS=1 CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 ANTHROPIC_BASE_URL=http://127.0.0.1:$dump_port clod $*" C-m
+  tmux send-keys -t "${target}.1" "ANTHROPIC_AUTH_TOKEN=sk-dummy ANTHROPIC_MODEL=claude-opus-4.6 ANTHROPIC_DEFAULT_HAIKU_MODEL=gpt-5-mini DISABLE_NON_ESSENTIAL_MODEL_CALLS=1 CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 ANTHROPIC_BASE_URL=http://127.0.0.1:$dump_port clod $*" C-m
 
   # Attach if we weren't already in tmux
   [[ $need_attach -eq 1 ]] && tmux attach-session -t "$session_name"
