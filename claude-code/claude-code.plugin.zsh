@@ -1,3 +1,7 @@
+happy() {
+   HAPPY_SERVER_URL=http://192.168.7.29:3005 HAPPY_HOME_DIR=~/.happy-local command happy
+}
+
 # Ensure this runs in a subshell - note the parens rather than curly braces
 clod () (
     export SHELL=bash
