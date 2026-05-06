@@ -1,6 +1,27 @@
 # Segment configurations
 # Comprehensive segment settings with sensible defaults
 
+##############################[ cmd_footer: command footer ]##################################
+# Strip the powerline-style separators that the global LEFT_PROMPT_LAST_SEGMENT_END_SYMBOL
+# would otherwise stick after our footer text — we want plain em-dashes flowing into the
+# gap fill, not powerline glyphs.
+typeset -g POWERLEVEL9K_CMD_FOOTER_BACKGROUND=
+typeset -g POWERLEVEL9K_CMD_FOOTER_LEFT_PROMPT_LAST_SEGMENT_END_SYMBOL=
+typeset -g POWERLEVEL9K_CMD_FOOTER_LEFT_PROMPT_FIRST_SEGMENT_START_SYMBOL=
+typeset -g POWERLEVEL9K_CMD_FOOTER_LEFT_LEFT_WHITESPACE=
+typeset -g POWERLEVEL9K_CMD_FOOTER_LEFT_RIGHT_WHITESPACE=' '
+# Pin visible during transient — without this the footer would collapse with the rest of
+# the prompt when an accepted prompt drops into scrollback.
+typeset -g POWERLEVEL9K_CMD_FOOTER_TRANSIENT_CONTENT_EXPANSION='${P9K_CONTENT}'
+
+##############################[ cmd_footer_cap: footer ╯ cap ]################################
+typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_BACKGROUND=
+typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_RIGHT_PROMPT_FIRST_SEGMENT_START_SYMBOL=
+typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_RIGHT_PROMPT_LAST_SEGMENT_END_SYMBOL=
+typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_RIGHT_LEFT_WHITESPACE=
+typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_RIGHT_RIGHT_WHITESPACE=
+typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_TRANSIENT_CONTENT_EXPANSION='${P9K_CONTENT}'
+
 #################################[ os_icon: os identifier ]##################################
 typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND=255
 
