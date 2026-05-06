@@ -1,52 +1,60 @@
 # Command Footer
 #
-# Replaces the off-by-one colored prompt arrow with a footer line that
-# describes the just-completed command — exit code and duration. The
-# footer is rendered as part of PROMPT (a P10k custom segment), so:
+# Renders a footer line above each prompt describing the just-completed
+# command (exit status, duration). Visual shape per command boundary,
+# with the live (typing) prompt at the bottom:
 #
-#   - It survives Ctrl-L / clear-screen redraws.
-#   - It is included in the transient-prompt collapse: prior commands
-#     leave the footer line + `❯ command` line in scrollback. Status
-#     info is preserved per command without baking color into the arrow
-#     before the command has had a chance to run.
-#
-# Visual shape per command boundary (live prompt at the bottom):
-#
-#     ╭─❮ ✓ exit=0 • 234ms ─────────────────────────...─────────────╯
+#     ╭─❮ ✓ exit=0 • 234ms ─────────────────────────...──────────────╯
 #     ❯ command_A
 #     <command output>
-#     ╭─❮ ✘ exit=1 • 1.70s ─────────────────────────...─────────────╯
+#     ╭─❮ ✘ exit=1 • 1.70s ─────────────────────────...──────────────╯
 #     ❯ command_B
 #     <command output>
-#     ╭─❮ ✓ exit=0 • 12ms ──────────────────────────...─────────────╯
+#     ╭─❮ ✓ exit=0 • 12ms ──────────────────────────...──────────────╯
 #     ├─~/code/cc-jstream  feature/branch ──────────...─── 14:23:01
 #     ╰─❯ <cursor>
 #
-# The arrow on the input line carries no status semantics — that lives
-# in the footer above where it can actually be correct.
+# WHY:
+#   A traditional transient prompt is drawn at zle-line-finish — *before*
+#   the command runs. Its colored arrow can therefore only ever reflect
+#   the *previous* command's exit status, producing a quiet off-by-one
+#   in scrollback. The footer is rendered after the command returns,
+#   from data the renderer actually has at that moment.
+#
+# HOW:
+#   Two surfaces. The live prompt uses two custom P10k segments
+#   (cmd_footer on the left, cmd_footer_cap on the right contributing
+#   the ╯). Width is handled automatically by P10k's gap-fill machinery.
+#
+#   The transient (collapsed-into-scrollback) prompt is harder: P10k
+#   builds _p9k_transient_prompt once at init as a hardcoded ❯-only
+#   string. It does NOT consult per-segment TRANSIENT_* overrides for
+#   custom segments — that surface is closed. But P10k calls the
+#   p10k-on-post-prompt hook on every zle-line-finish before the
+#   transient swap (see internal/p10k.zsh:7887), so we use that hook
+#   to mutate _p9k_transient_prompt right before P10k reads it.
 
-# Re-enable P10k's transient prompt: prior accepted prompts collapse to
-# their minimal form in scrollback. We pin the cmd_footer segments
-# visible during transient (see below) so the footer line survives.
 typeset -g POWERLEVEL9K_TRANSIENT_PROMPT=same-dir
 
 zmodload zsh/datetime 2>/dev/null
 
 autoload -Uz add-zsh-hook
 
-# Captures command start time so the footer can report duration.
+# Captures command start time. Fires after Enter, before the command runs.
 function _rad_p10k_footer_preexec() {
   typeset -gF _RAD_P10K_CMD_START=$EPOCHREALTIME
 }
 
-# Computes footer content from the just-completed command's exit status
-# and duration, stashes it in _RAD_P10K_FOOTER_TEXT for the segment
-# functions to render. Skips when there was no preceding command.
+# Computes footer text from the just-finished command's exit code and
+# elapsed time, and stores TWO versions:
+#   - _RAD_P10K_FOOTER_TEXT      (with %F{N}%f color escapes, for display)
+#   - _RAD_P10K_FOOTER_TEXT_RAW  (no color escapes, for visible-width math)
+# Skipped when no command actually ran (start of session, bare Enter).
 function _rad_p10k_footer_precmd() {
   local last_status=$?
 
   if [[ -z $_RAD_P10K_CMD_START ]]; then
-    unset _RAD_P10K_FOOTER_TEXT
+    unset _RAD_P10K_FOOTER_TEXT _RAD_P10K_FOOTER_TEXT_RAW
     return 0
   fi
 
@@ -76,22 +84,60 @@ function _rad_p10k_footer_precmd() {
   fi
 
   typeset -g _RAD_P10K_FOOTER_TEXT="❮ %F{$status_color}${status_glyph}%f %F{248}exit=${last_status} • ${elapsed_str}%f"
+  typeset -g _RAD_P10K_FOOTER_TEXT_RAW="❮ ${status_glyph} exit=${last_status} • ${elapsed_str}"
 }
 
 add-zsh-hook preexec _rad_p10k_footer_preexec
 add-zsh-hook precmd  _rad_p10k_footer_precmd
 
-# Custom P10k segment: footer summary. Renders nothing when there is no
-# preceding command (start of session, bare Enter on empty input).
+# Custom P10k segment: footer summary on the left of line 1.
+# The actual displayed content is sourced via CONTENT_EXPANSION
+# (see 40-segments.zsh) so it stays in sync with the transient version.
 function prompt_cmd_footer() {
   [[ -z $_RAD_P10K_FOOTER_TEXT ]] && return
   p10k segment -f 240 -t "$_RAD_P10K_FOOTER_TEXT"
 }
 
-# Custom P10k segment: footer right-end cap. The 180° rotation of the
-# top-left corner (╭) used by P10k's first-line prefix. Together with the
-# em-dash gap fill in between, this gives us `╭─footer─...─╯` on line 1.
+# Custom P10k segment: footer right-end cap (╯). Pairs with the ╭─
+# from MULTILINE_FIRST_PROMPT_PREFIX; the em-dashes between them come
+# from the MULTILINE_FIRST_PROMPT_GAP_CHAR fill.
 function prompt_cmd_footer_cap() {
   [[ -z $_RAD_P10K_FOOTER_TEXT ]] && return
   p10k segment -f 240 -t '╯'
+}
+
+# Hook called by P10k from zle-line-finish (internal/p10k.zsh:7887),
+# just before the transient prompt swap at 7910. Mutating
+# _p9k_transient_prompt here lets us replace the hardcoded `❯` with
+# `<footer line>\n❯` so the footer survives the collapse into scrollback.
+#
+# We cache P10k's original transient string on first call so we don't
+# accumulate footers across invocations.
+function p10k-on-post-prompt() {
+  [[ -z $_p9k_transient_prompt ]] && return
+
+  if [[ -z $_RAD_P9K_TRANSIENT_ORIG ]]; then
+    typeset -g _RAD_P9K_TRANSIENT_ORIG=$_p9k_transient_prompt
+  fi
+
+  if [[ -z $_RAD_P10K_FOOTER_TEXT ]]; then
+    _p9k_transient_prompt=$_RAD_P9K_TRANSIENT_ORIG
+    return
+  fi
+
+  # Layout: ╭─ + footer_text + ' ' + N×─ + ╯
+  # ╭, ─, ❮, ╯, ✓, ✘ are all single-cell-width Unicode in any reasonable terminal.
+  local -i text_cells=$#_RAD_P10K_FOOTER_TEXT_RAW
+  local -i prefix_cells=2  # "╭─"
+  local -i sep_cells=1     # space before dashes
+  local -i suffix_cells=1  # "╯"
+  local -i dash_count=$(( COLUMNS - prefix_cells - text_cells - sep_cells - suffix_cells ))
+  (( dash_count < 0 )) && dash_count=0
+
+  local _empty=
+  local dashes=${(l:dash_count::─:)_empty}
+
+  local footer_line=$'%F{240}╭─%f'${_RAD_P10K_FOOTER_TEXT}$' %F{240}'${dashes}$'╯%f\n'
+
+  _p9k_transient_prompt="${footer_line}${_RAD_P9K_TRANSIENT_ORIG}"
 }
