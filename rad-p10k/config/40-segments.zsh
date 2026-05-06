@@ -6,8 +6,10 @@ typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND=255
 
 ################################[ prompt_char: prompt symbol ]################################
 typeset -g POWERLEVEL9K_PROMPT_CHAR_BACKGROUND=
-typeset -g POWERLEVEL9K_PROMPT_CHAR_OK_{VIINS,VICMD,VIVIS,VIOWR}_FOREGROUND=76
-typeset -g POWERLEVEL9K_PROMPT_CHAR_ERROR_{VIINS,VICMD,VIVIS,VIOWR}_FOREGROUND=196
+# Neutral color regardless of exit status. The just-finished command's
+# status is reported in the footer above (see 50-transient.zsh), so this
+# arrow only marks "where to type the next command" — no status semantics.
+typeset -g POWERLEVEL9K_PROMPT_CHAR_{OK,ERROR}_{VIINS,VICMD,VIVIS,VIOWR}_FOREGROUND=244
 typeset -g POWERLEVEL9K_PROMPT_CHAR_{OK,ERROR}_VIINS_CONTENT_EXPANSION='❯'
 typeset -g POWERLEVEL9K_PROMPT_CHAR_{OK,ERROR}_VICMD_CONTENT_EXPANSION='❮'
 typeset -g POWERLEVEL9K_PROMPT_CHAR_{OK,ERROR}_VIVIS_CONTENT_EXPANSION='V'
