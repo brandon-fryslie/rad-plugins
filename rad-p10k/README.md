@@ -7,7 +7,7 @@ Opinionated Powerlevel10k configuration with sensible defaults.
 - Modern two-line prompt with nerdfont icons
 - Comprehensive segment configurations for 50+ tools/environments
 - Custom git formatter with detailed status info (gitstatus-based)
-- Transient prompt support with save/restore helpers
+- Command footer (exit status + duration) rendered after each command
 - Sensible defaults that work out of the box
 
 ## Installation
@@ -37,7 +37,7 @@ rad-p10k/
 │   ├── 20-prompt-style.zsh     # Visual styling (separators, multiline)
 │   ├── 30-git-formatter.zsh    # Custom git status formatter
 │   ├── 40-segments.zsh         # All segment color/behavior settings
-│   ├── 50-transient.zsh        # Transient prompt settings
+│   ├── 50-transient.zsh        # Command footer (replaces transient prompt)
 │   └── 90-finalize.zsh         # Instant prompt, reload
 └── README.md
 ```
@@ -76,16 +76,33 @@ rad-p10k includes a custom `my_git_formatter` function that provides:
 - Merge/rebase state
 - Stash count
 
-## Transient Prompt
+## Command Footer
 
-Helper functions for transient prompt customization:
+After each command, a two-line footer is printed before the next prompt:
 
-```zsh
-rad-p10k-set-transient-on   # Save original values
-rad-p10k-set-transient-off  # Restore original values
+```
+<command output>
+─────────────────────────────────────────────────────────────────...─
+╰─❮ ✓ exit=0 • 234ms
+
+╭─~/code/cc-jstream  branch ───────...─── 14:23:01
+╰─❯ next_command
 ```
 
-Configure which variables to save/restore via `RAD_TRANSIENT_VARS` array.
+The footer fires from `precmd`, so `$?` and the elapsed time are the
+real values for the command that just ran — unlike a traditional
+transient prompt, which has to redraw before the command runs and can
+only reflect the *previous* command's status.
+
+The arrow on the user-input line is intentionally neutral; status info
+lives in the footer where it can be correct.
+
+P10k's built-in transient prompt is disabled (`POWERLEVEL9K_TRANSIENT_PROMPT=off`)
+because the two mechanisms conflict.
+
+The footer is suppressed for the first prompt of a session and for
+empty-Enter on a blank input line (no command actually ran in those
+cases, so there is nothing to report).
 
 ## Dependencies
 
