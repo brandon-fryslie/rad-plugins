@@ -5,25 +5,23 @@
 # Override POWERLEVEL9K_LEFT_PROMPT_ELEMENTS and POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS
 # in your personal config to customize.
 
-# Left prompt: footer line, then directory and git, with prompt char on the last line
+# Left prompt: directory and git, with prompt char on second line.
+# Note: the footer line for the previous command is rendered ONLY in the
+# transient (collapsed) prompt — see 50-transient.zsh. Putting it in the
+# live prompt too would produce a duplicate row in scrollback (one from
+# the live prompt, one from the next command's transient swap).
 typeset -g POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(
-  # =========================[ Line #1: footer ]=========================
-  cmd_footer              # exit status / duration of the previous command
-  newline                 # \n
-  # =========================[ Line #2 ]=========================
+  # =========================[ Line #1 ]=========================
   dir                     # current directory
   vcs                     # git status (gitstatus-based)
-  # =========================[ Line #3 ]=========================
+  # =========================[ Line #2 ]=========================
   newline                 # \n
   prompt_char             # prompt symbol
 )
 
-# Right prompt: footer cap, then common developer tools and time
+# Right prompt: common developer tools and time
 typeset -g POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(
-  # =========================[ Line #1: footer cap ]=========================
-  cmd_footer_cap          # ╯ cap, paired with ╭─ on the left
-  newline                 # \n
-  # =========================[ Line #2 ]=========================
+  # =========================[ Line #1 ]=========================
   status                  # exit code of last command
   command_execution_time  # duration of the last command
   background_jobs         # presence of background jobs
@@ -41,6 +39,6 @@ typeset -g POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(
   azure                   # azure account name
   context                 # user@hostname
   time                    # current time
-  # =========================[ Line #3 ]=========================
+  # =========================[ Line #2 ]=========================
   newline                 # \n
 )

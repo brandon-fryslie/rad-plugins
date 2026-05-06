@@ -1,27 +1,9 @@
 # Segment configurations
 # Comprehensive segment settings with sensible defaults
-
-##############################[ cmd_footer: command footer ]##################################
-# Live prompt only — the transient (collapsed) version of this line is
-# constructed separately in the p10k-on-post-prompt hook (50-transient.zsh).
-# Per-segment TRANSIENT_* overrides do not work for custom segments;
-# P10k's transient prompt is a hardcoded ❯ that ignores them.
-typeset -g POWERLEVEL9K_CMD_FOOTER_BACKGROUND=
-# Suppress the global powerline-style separator after the footer text;
-# we want plain em-dashes from the gap fill, not powerline glyphs.
-typeset -g POWERLEVEL9K_CMD_FOOTER_LEFT_PROMPT_LAST_SEGMENT_END_SYMBOL=
-typeset -g POWERLEVEL9K_CMD_FOOTER_LEFT_PROMPT_FIRST_SEGMENT_START_SYMBOL=
-typeset -g POWERLEVEL9K_CMD_FOOTER_LEFT_LEFT_WHITESPACE=
-typeset -g POWERLEVEL9K_CMD_FOOTER_LEFT_RIGHT_WHITESPACE=' '
-typeset -g POWERLEVEL9K_CMD_FOOTER_CONTENT_EXPANSION='${_RAD_P10K_FOOTER_TEXT}'
-
-##############################[ cmd_footer_cap: footer ╯ cap ]################################
-typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_BACKGROUND=
-typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_RIGHT_PROMPT_FIRST_SEGMENT_START_SYMBOL=
-typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_RIGHT_PROMPT_LAST_SEGMENT_END_SYMBOL=
-typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_RIGHT_LEFT_WHITESPACE=
-typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_RIGHT_RIGHT_WHITESPACE=
-typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_CONTENT_EXPANSION='${_RAD_P10K_FOOTER_TEXT:+%F{240}╯%f}'
+#
+# The footer line for the previous command is rendered solely by
+# 50-transient.zsh's p10k-on-post-prompt hook; it is not a P10k segment
+# and has no entry here.
 
 #################################[ os_icon: os identifier ]##################################
 typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND=255
