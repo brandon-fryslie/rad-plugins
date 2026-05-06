@@ -2,20 +2,18 @@
 # Comprehensive segment settings with sensible defaults
 
 ##############################[ cmd_footer: command footer ]##################################
-# Strip the powerline-style separators that the global LEFT_PROMPT_LAST_SEGMENT_END_SYMBOL
-# would otherwise stick after our footer text — we want plain em-dashes flowing into the
-# gap fill, not powerline glyphs.
+# Live prompt only — the transient (collapsed) version of this line is
+# constructed separately in the p10k-on-post-prompt hook (50-transient.zsh).
+# Per-segment TRANSIENT_* overrides do not work for custom segments;
+# P10k's transient prompt is a hardcoded ❯ that ignores them.
 typeset -g POWERLEVEL9K_CMD_FOOTER_BACKGROUND=
+# Suppress the global powerline-style separator after the footer text;
+# we want plain em-dashes from the gap fill, not powerline glyphs.
 typeset -g POWERLEVEL9K_CMD_FOOTER_LEFT_PROMPT_LAST_SEGMENT_END_SYMBOL=
 typeset -g POWERLEVEL9K_CMD_FOOTER_LEFT_PROMPT_FIRST_SEGMENT_START_SYMBOL=
 typeset -g POWERLEVEL9K_CMD_FOOTER_LEFT_LEFT_WHITESPACE=
 typeset -g POWERLEVEL9K_CMD_FOOTER_LEFT_RIGHT_WHITESPACE=' '
-# Pin visible during transient. Reference _RAD_P10K_FOOTER_TEXT directly (a shell
-# variable set by our precmd hook) rather than ${P9K_CONTENT}, because P10k's
-# transient pass for custom segments may not re-invoke the segment function — and
-# without invocation, P9K_CONTENT is empty and the footer collapses away.
 typeset -g POWERLEVEL9K_CMD_FOOTER_CONTENT_EXPANSION='${_RAD_P10K_FOOTER_TEXT}'
-typeset -g POWERLEVEL9K_CMD_FOOTER_TRANSIENT_CONTENT_EXPANSION='${_RAD_P10K_FOOTER_TEXT}'
 
 ##############################[ cmd_footer_cap: footer ╯ cap ]################################
 typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_BACKGROUND=
@@ -23,10 +21,7 @@ typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_RIGHT_PROMPT_FIRST_SEGMENT_START_SYMBOL=
 typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_RIGHT_PROMPT_LAST_SEGMENT_END_SYMBOL=
 typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_RIGHT_LEFT_WHITESPACE=
 typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_RIGHT_RIGHT_WHITESPACE=
-# The cap is a literal ╯ — hardcode the transient expansion so it survives even
-# when P10k's transient pass skips the segment function call.
 typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_CONTENT_EXPANSION='${_RAD_P10K_FOOTER_TEXT:+%F{240}╯%f}'
-typeset -g POWERLEVEL9K_CMD_FOOTER_CAP_TRANSIENT_CONTENT_EXPANSION='${_RAD_P10K_FOOTER_TEXT:+%F{240}╯%f}'
 
 #################################[ os_icon: os identifier ]##################################
 typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND=255
