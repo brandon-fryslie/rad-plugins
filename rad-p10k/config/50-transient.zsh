@@ -1,17 +1,16 @@
 # Command Footer
 #
-# Renders a footer line above each prompt describing the just-completed
-# command (exit status, duration). Visual shape per command boundary,
-# with the live (typing) prompt at the bottom:
+# Renders a footer line above each command in scrollback describing the
+# just-completed command (exit status, duration). Visual shape per
+# command boundary, with the live (typing) prompt at the bottom:
 #
-#     ╭─❮ ✓ exit=0 • 234ms ─────────────────────────...──────────────╯
+#     ╰─❮ ✓ exit=0 • 234ms ─────────────────────────...──────────────
 #     ❯ command_A
 #     <command output>
-#     ╭─❮ ✘ exit=1 • 1.70s ─────────────────────────...──────────────╯
+#     ╰─❮ ✘ exit=1 • 1.70s ─────────────────────────...──────────────
 #     ❯ command_B
 #     <command output>
-#     ╭─❮ ✓ exit=0 • 12ms ──────────────────────────...──────────────╯
-#     ├─~/code/cc-jstream  feature/branch ──────────...─── 14:23:01
+#     ╭─~/code/cc-jstream  feature/branch ──────────...─── 14:23:01
 #     ╰─❯ <cursor>
 #
 # WHY:
@@ -22,17 +21,24 @@
 #   from data the renderer actually has at that moment.
 #
 # HOW:
-#   Two surfaces. The live prompt uses two custom P10k segments
-#   (cmd_footer on the left, cmd_footer_cap on the right contributing
-#   the ╯). Width is handled automatically by P10k's gap-fill machinery.
+#   The footer lives ONLY in the transient (collapsed-into-scrollback)
+#   prompt — not in the live prompt. Why one surface only: a footer in
+#   the live prompt produces a visible duplicate row in scrollback
+#   (one from the live prompt's own first line, one from the next
+#   command's transient swap). Concentrating it in transient gives
+#   exactly one footer line per command boundary.
 #
-#   The transient (collapsed-into-scrollback) prompt is harder: P10k
-#   builds _p9k_transient_prompt once at init as a hardcoded ❯-only
-#   string. It does NOT consult per-segment TRANSIENT_* overrides for
-#   custom segments — that surface is closed. But P10k calls the
-#   p10k-on-post-prompt hook on every zle-line-finish before the
-#   transient swap (see internal/p10k.zsh:7887), so we use that hook
-#   to mutate _p9k_transient_prompt right before P10k reads it.
+#   P10k builds _p9k_transient_prompt once at init as a hardcoded
+#   ❯-only string (internal/p10k.zsh:8585-8614). It does NOT consult
+#   per-segment TRANSIENT_* overrides for custom segments. But P10k
+#   calls the p10k-on-post-prompt hook on every zle-line-finish, just
+#   before the transient swap (line 7887), so we use that hook to
+#   mutate _p9k_transient_prompt right before P10k reads it.
+#
+#   Trade-off: Ctrl-L on the live prompt does not redraw the footer
+#   (it lives in scrollback, not in PROMPT). Most terminals preserve
+#   scrollback across Ctrl-L, so the footer remains reachable by
+#   scrolling up.
 
 typeset -g POWERLEVEL9K_TRANSIENT_PROMPT=same-dir
 
@@ -90,22 +96,6 @@ function _rad_p10k_footer_precmd() {
 add-zsh-hook preexec _rad_p10k_footer_preexec
 add-zsh-hook precmd  _rad_p10k_footer_precmd
 
-# Custom P10k segment: footer summary on the left of line 1.
-# The actual displayed content is sourced via CONTENT_EXPANSION
-# (see 40-segments.zsh) so it stays in sync with the transient version.
-function prompt_cmd_footer() {
-  [[ -z $_RAD_P10K_FOOTER_TEXT ]] && return
-  p10k segment -f 240 -t "$_RAD_P10K_FOOTER_TEXT"
-}
-
-# Custom P10k segment: footer right-end cap (╯). Pairs with the ╭─
-# from MULTILINE_FIRST_PROMPT_PREFIX; the em-dashes between them come
-# from the MULTILINE_FIRST_PROMPT_GAP_CHAR fill.
-function prompt_cmd_footer_cap() {
-  [[ -z $_RAD_P10K_FOOTER_TEXT ]] && return
-  p10k segment -f 240 -t '╯'
-}
-
 # Hook called by P10k from zle-line-finish (internal/p10k.zsh:7887),
 # just before the transient prompt swap at 7910. Mutating
 # _p9k_transient_prompt here lets us replace the hardcoded `❯` with
@@ -125,19 +115,18 @@ function p10k-on-post-prompt() {
     return
   fi
 
-  # Layout: ╭─ + footer_text + ' ' + N×─ + ╯
-  # ╭, ─, ❮, ╯, ✓, ✘ are all single-cell-width Unicode in any reasonable terminal.
+  # Layout: ╰─ + footer_text + ' ' + N×─    (no end cap; dashes flow to edge)
+  # ╰, ─, ❮, ✓, ✘ are all single-cell-width Unicode in any reasonable terminal.
   local -i text_cells=$#_RAD_P10K_FOOTER_TEXT_RAW
-  local -i prefix_cells=2  # "╭─"
+  local -i prefix_cells=2  # "╰─"
   local -i sep_cells=1     # space before dashes
-  local -i suffix_cells=1  # "╯"
-  local -i dash_count=$(( COLUMNS - prefix_cells - text_cells - sep_cells - suffix_cells ))
+  local -i dash_count=$(( COLUMNS - prefix_cells - text_cells - sep_cells ))
   (( dash_count < 0 )) && dash_count=0
 
   local _empty=
   local dashes=${(l:dash_count::─:)_empty}
 
-  local footer_line=$'%F{240}╭─%f'${_RAD_P10K_FOOTER_TEXT}$' %F{240}'${dashes}$'╯%f\n'
+  local footer_line=$'%F{240}╰─%f'${_RAD_P10K_FOOTER_TEXT}$' %F{240}'${dashes}$'%f\n'
 
   _p9k_transient_prompt="${footer_line}${_RAD_P9K_TRANSIENT_ORIG}"
 }
