@@ -82,12 +82,12 @@ function _rad_p10k_footer_precmd() {
 
   # Per-field colors — muted to match the timestamp's teal saturation.
   #   timestamp = 66  (TIME_FOREGROUND, muted teal)
-  #   duration  = 248 (neutral gray)
+  #   duration  = 100 (dim olive-yellow)
   #   cwd       = 31  (DIR_FOREGROUND, blue)
   #   cmd_name  = 65  (sage green — dimmer than VCS-clean's 76)
   # Separator dot stays dim (240) so it recedes visually.
   local sep='%F{240}•%f'
-  local footer_text="%F{$status_color}❮%f %F{66}${timestamp}%f ${sep} %F{248}${elapsed_str}%f ${sep} %F{31}${cwd}%f ${sep} %F{65}${cmd_name}%f"
+  local footer_text="%F{$status_color}❮%f %F{66}${timestamp}%f ${sep} %F{100}${elapsed_str}%f ${sep} %F{31}${cwd}%f ${sep} %F{65}${cmd_name}%f"
   local footer_text_raw="❮ ${timestamp} • ${elapsed_str} • ${cwd} • ${cmd_name}"
 
   # Layout: ╰─ + footer_text + ' ❯' + N×─    (gray ❯ butts up to the dashes)
