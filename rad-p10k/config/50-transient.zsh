@@ -4,7 +4,7 @@
 # completed command (exit status, duration). Visual shape per command
 # boundary, with the live (typing) prompt below:
 #
-#     ╰─❮ 234ms ─────────────────────────────────────...──────────────
+#     ╰─❮ 234ms • ~/code/cc-jstream ───────────────...──────────────
 #     ╭─~/code/cc-jstream  feature/branch ──────────...─── 14:23:01
 #     ╰─❯ <cursor>
 #
@@ -71,8 +71,13 @@ function _rad_p10k_footer_precmd() {
   local status_color=70   # green
   (( last_status != 0 )) && status_color=160  # red
 
-  local footer_text="%F{$status_color}❮%f %F{248}${elapsed_str}%f"
-  local footer_text_raw="❮ ${elapsed_str}"
+  # cwd with ~ collapse, expanded via prompt-escape for both the
+  # styled string (where %~ would render again) and the raw width
+  # measurement (which needs the actual cell count).
+  local cwd=${(%):-%~}
+
+  local footer_text="%F{$status_color}❮%f %F{248}${elapsed_str} • ${cwd}%f"
+  local footer_text_raw="❮ ${elapsed_str} • ${cwd}"
 
   # Layout: ╰─ + footer_text + ' ' + N×─    (no end cap; dashes flow to edge)
   local -i text_cells=$#footer_text_raw
