@@ -4,7 +4,7 @@
 # completed command (exit status, duration). Visual shape per command
 # boundary, with the live (typing) prompt below:
 #
-#     ╰─❮ 234ms • ~/code/cc-jstream ───────────────...──────────────
+#     ╰─❮ 14:23:01 • 234ms • ~/code/cc-jstream • git ───────...─────
 #     ╭─~/code/cc-jstream  feature/branch ──────────...─── 14:23:01
 #     ╰─❯ <cursor>
 #
@@ -37,9 +37,11 @@ zmodload zsh/datetime 2>/dev/null
 
 autoload -Uz add-zsh-hook
 
-# Captures command start time. Fires after Enter, before the command runs.
+# Captures command start time and the command name (first word of the
+# command line as typed). Fires after Enter, before the command runs.
 function _rad_p10k_footer_preexec() {
   typeset -gF _RAD_P10K_CMD_START=$EPOCHREALTIME
+  typeset -g _RAD_P10K_CMD_NAME=${1%% *}
 }
 
 # Computes footer text from the just-finished command's exit code and
@@ -51,7 +53,8 @@ function _rad_p10k_footer_precmd() {
   [[ -z $_RAD_P10K_CMD_START ]] && return 0
 
   local elapsed_s=$(( EPOCHREALTIME - _RAD_P10K_CMD_START ))
-  unset _RAD_P10K_CMD_START
+  local cmd_name=$_RAD_P10K_CMD_NAME
+  unset _RAD_P10K_CMD_START _RAD_P10K_CMD_NAME
 
   local -i elapsed_total_s=$elapsed_s
   local elapsed_str
@@ -71,13 +74,15 @@ function _rad_p10k_footer_precmd() {
   local status_color=70   # green
   (( last_status != 0 )) && status_color=160  # red
 
-  # cwd with ~ collapse, expanded via prompt-escape for both the
-  # styled string (where %~ would render again) and the raw width
-  # measurement (which needs the actual cell count).
+  # cwd with ~ collapse, expanded via prompt-escape so we get the real
+  # string for both display and width math (no double-expansion later).
   local cwd=${(%):-%~}
+  # Timestamp at footer-print time (when the command finished, not started).
+  local timestamp=${(%):-%D{%H:%M:%S}}
 
-  local footer_text="%F{$status_color}❮%f %F{248}${elapsed_str} • ${cwd}%f"
-  local footer_text_raw="❮ ${elapsed_str} • ${cwd}"
+  # Order: timestamp • duration • cwd • cmd_name
+  local footer_text="%F{$status_color}❮%f %F{248}${timestamp} • ${elapsed_str} • ${cwd} • ${cmd_name}%f"
+  local footer_text_raw="❮ ${timestamp} • ${elapsed_str} • ${cwd} • ${cmd_name}"
 
   # Layout: ╰─ + footer_text + ' ' + N×─    (no end cap; dashes flow to edge)
   local -i text_cells=$#footer_text_raw
