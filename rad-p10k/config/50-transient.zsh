@@ -4,9 +4,12 @@
 # completed command (exit status, duration). Visual shape per command
 # boundary, with the live (typing) prompt below:
 #
-#     ╰─❮ ✓ exit=0 • 234ms ─────────────────────────...──────────────
+#     ╰─❮ 234ms ─────────────────────────────────────...──────────────
 #     ╭─~/code/cc-jstream  feature/branch ──────────...─── 14:23:01
 #     ╰─❯ <cursor>
+#
+# The ❮ glyph is colored green on success and red on non-zero exit —
+# that's the entire status indicator (no glyph, no numeric exit code).
 #
 # WHY:
 #   A traditional transient prompt is drawn at zle-line-finish — *before*
@@ -63,17 +66,13 @@ function _rad_p10k_footer_precmd() {
     elapsed_str="$(( elapsed_total_s / 3600 ))h$(( (elapsed_total_s / 60) % 60 ))m"
   fi
 
-  local status_glyph status_color
-  if (( last_status == 0 )); then
-    status_glyph='✓'
-    status_color=70   # green
-  else
-    status_glyph='✘'
-    status_color=160  # red
-  fi
+  # The ❮ glyph itself carries the exit-status signal: green for 0,
+  # red for non-zero. No separate glyph or numeric exit code in the line.
+  local status_color=70   # green
+  (( last_status != 0 )) && status_color=160  # red
 
-  local footer_text="❮ %F{$status_color}${status_glyph}%f %F{248}exit=${last_status} • ${elapsed_str}%f"
-  local footer_text_raw="❮ ${status_glyph} exit=${last_status} • ${elapsed_str}"
+  local footer_text="%F{$status_color}❮%f %F{248}${elapsed_str}%f"
+  local footer_text_raw="❮ ${elapsed_str}"
 
   # Layout: ╰─ + footer_text + ' ' + N×─    (no end cap; dashes flow to edge)
   local -i text_cells=$#footer_text_raw
