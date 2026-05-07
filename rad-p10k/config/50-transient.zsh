@@ -4,7 +4,7 @@
 # completed command (exit status, duration). Visual shape per command
 # boundary, with the live (typing) prompt below:
 #
-#     ╰─❮ 14:23:01 • 234ms • ~/code/cc-jstream • git ───────...─────
+#     ╰─❮ 14:23:01 • 234ms • ~/code/cc-jstream • git ❯──────...─────
 #     ╭─~/code/cc-jstream  feature/branch ──────────...─── 14:23:01
 #     ╰─❯ <cursor>
 #
@@ -90,16 +90,18 @@ function _rad_p10k_footer_precmd() {
   local footer_text="%F{$status_color}❮%f %F{66}${timestamp}%f ${sep} %F{248}${elapsed_str}%f ${sep} %F{31}${cwd}%f ${sep} %F{76}${cmd_name}%f"
   local footer_text_raw="❮ ${timestamp} • ${elapsed_str} • ${cwd} • ${cmd_name}"
 
-  # Layout: ╰─ + footer_text + ' ' + N×─    (no end cap; dashes flow to edge)
+  # Layout: ╰─ + footer_text + ' ❯' + N×─    (gray ❯ butts up to the dashes)
+  # The ❯ is the same gray (244) as the live PROMPT_CHAR — visual rhyme
+  # between the footer and the live prompt below.
   local -i text_cells=$#footer_text_raw
   local -i prefix_cells=2  # "╰─"
-  local -i sep_cells=1
+  local -i sep_cells=2     # " ❯"
   local -i dash_count=$(( COLUMNS - prefix_cells - text_cells - sep_cells ))
   (( dash_count < 0 )) && dash_count=0
   local _empty=
   local dashes=${(l:dash_count::─:)_empty}
 
-  print -P -- "%F{240}╰─%f${footer_text} %F{240}${dashes}%f"
+  print -P -- "%F{240}╰─%f${footer_text} %F{244}❯%f%F{240}${dashes}%f"
 }
 
 add-zsh-hook preexec _rad_p10k_footer_preexec
