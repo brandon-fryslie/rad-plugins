@@ -80,8 +80,14 @@ function _rad_p10k_footer_precmd() {
   # Timestamp at footer-print time (when the command finished, not started).
   local timestamp=${(%):-%D{%H:%M:%S}}
 
-  # Order: timestamp • duration • cwd • cmd_name
-  local footer_text="%F{$status_color}❮%f %F{248}${timestamp} • ${elapsed_str} • ${cwd} • ${cmd_name}%f"
+  # Per-field colors mirror the live P10k segments:
+  #   timestamp = 66  (TIME_FOREGROUND)
+  #   duration  = 248 (COMMAND_EXECUTION_TIME_FOREGROUND, neutral gray)
+  #   cwd       = 31  (DIR_FOREGROUND, lighter blue than time)
+  #   cmd_name  = 76  (VCS clean green)
+  # Separator dot stays dim (240) so it recedes visually.
+  local sep='%F{240}•%f'
+  local footer_text="%F{$status_color}❮%f %F{66}${timestamp}%f ${sep} %F{248}${elapsed_str}%f ${sep} %F{31}${cwd}%f ${sep} %F{76}${cmd_name}%f"
   local footer_text_raw="❮ ${timestamp} • ${elapsed_str} • ${cwd} • ${cmd_name}"
 
   # Layout: ╰─ + footer_text + ' ' + N×─    (no end cap; dashes flow to edge)
