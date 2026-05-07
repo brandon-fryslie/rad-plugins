@@ -25,6 +25,11 @@
 #   scrollback because the transient redraw didn't fully overwrite
 #   the live prompt. Print-from-precmd sidesteps the entire mechanism.
 
+# Re-enable P10k's transient prompt feature (collapses prior prompts to
+# a short form on Enter). Independent of the footer — the footer is
+# plain scrollback text printed by precmd; transient operates on PROMPT.
+typeset -g POWERLEVEL9K_TRANSIENT_PROMPT=same-dir
+
 zmodload zsh/datetime 2>/dev/null
 
 autoload -Uz add-zsh-hook
