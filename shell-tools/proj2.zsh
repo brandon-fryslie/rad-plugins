@@ -538,42 +538,35 @@ function proj2z {
   local preview_script="${_PROJ2Z_SCRIPT_DIR}/.proj2z-preview.sh"
   local preview_cmd="${(qq)preview_script} {} ${(@qq)proj_dirs}"
 
-  # Create temp files for project lists and data
-  local active_file=$(mktemp)
-  local inactive_file=$(mktemp)
+  # Temp file for the CTRL-S git status loader (it reads project metadata from this).
   local project_data_file=$(mktemp)
-  trap "rm -f '$active_file' '$inactive_file' '$project_data_file'" EXIT
-
-  printf '%s\n' "${active_projects[@]}" > "$active_file"
-  printf '%s\n' "${inactive_projects[@]}" > "$inactive_file"
+  trap "rm -f '$project_data_file'" EXIT
 
   # Write project data for git status loader (tab-separated: path, display, mtime, is_active)
   for (( i=1; i <= idx; i++ )); do
     printf '%s\t%s\t%s\t%s\n' "${all_full_paths[$i]}" "${all_displays[$i]}" "${all_mtimes[$i]}" "${all_is_active[$i]}"
   done > "$project_data_file"
 
-  # Build filter command (simple filter without git status)
-  local filter_script="${_PROJ2Z_SCRIPT_DIR}/.proj2z-filter.sh"
-  local filter_cmd="${(qq)filter_script} {q} ${(qq)active_file} ${(qq)inactive_file}"
-
   # Build git status loader command (fetches git status and rebuilds list)
   local status_loader_script="${_PROJ2Z_SCRIPT_DIR}/.proj2z-load-status.sh"
   local status_loader_cmd="${(qq)status_loader_script} {q} ${(qq)project_data_file} ${(qq)_PROJ2Z_SCRIPT_DIR}"
 
-  # Use fzf to select project(s) with multiple actions
+  # Use fzf to select project(s) with multiple actions.
+  # [LAW:dataflow-not-control-flow] Items flow in via stdin; fzf's own native
+  # filter handles keystrokes (microseconds) instead of a per-keystroke shell
+  # reload that re-stripped ANSI from N items per keystroke (~720ms). --no-sort
+  # preserves the active-first ordering we already built into the input stream.
   # CTRL-S loads git status for all projects
   # CTRL-P toggles preview pane
-  selected=$(fzf \
+  selected=$(printf '%s\n' "${all_projects[@]}" | fzf \
     --multi \
     --ansi \
+    --no-sort \
     --height=60% \
     --reverse \
     --prompt="Project: " \
     --query="$initial_query" \
     --header="CTRL-S=git status  CTRL-P=preview  CTRL-G=github" \
-    --disabled \
-    --bind "start:reload:$filter_cmd" \
-    --bind "change:reload:$filter_cmd" \
     --bind "ctrl-s:reload:$status_loader_cmd" \
     --bind "ctrl-p:toggle-preview" \
     --bind "ctrl-g:execute-silent(echo {+} > /tmp/proj2-github)+accept" \
