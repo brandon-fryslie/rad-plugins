@@ -405,7 +405,7 @@ typeset -g POWERLEVEL9K_WIFI_FOREGROUND=68
 
 ####################################[ time ]####################################
 typeset -g POWERLEVEL9K_TIME_FOREGROUND=66
-typeset -g POWERLEVEL9K_TIME_FORMAT='%D{%H:%M:%S}'
+typeset -g POWERLEVEL9K_TIME_FORMAT='%D{%-I:%M:%S %p}'
 typeset -g POWERLEVEL9K_TIME_UPDATE_ON_COMMAND=true
 typeset -g POWERLEVEL9K_TIME_VISUAL_IDENTIFIER_EXPANSION=
 # Styling for time segment end cap

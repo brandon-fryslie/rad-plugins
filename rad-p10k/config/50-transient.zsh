@@ -71,14 +71,14 @@ function _rad_p10k_footer_precmd() {
 
   # The ❮ glyph itself carries the exit-status signal: green for 0,
   # red for non-zero. No separate glyph or numeric exit code in the line.
-  local status_color=70   # green
-  (( last_status != 0 )) && status_color=160  # red
+  local status_color='70'         # green
+  (( last_status != 0 )) && status_color='#B90000'  # RGB(185,0,0)
 
   # cwd with ~ collapse, expanded via prompt-escape so we get the real
   # string for both display and width math (no double-expansion later).
   local cwd=${(%):-%~}
   # Timestamp at footer-print time (when the command finished, not started).
-  local timestamp=${(%):-%D{%H:%M:%S}}
+  local timestamp=${(%):-%D{%-I:%M:%S %p}}
 
   # Per-field colors — muted to match the timestamp's teal saturation.
   #   timestamp = 66  (TIME_FOREGROUND, muted teal)
@@ -101,8 +101,21 @@ function _rad_p10k_footer_precmd() {
   local _empty=
   local dashes=${(l:dash_count::─:)_empty}
 
-  print -P -- "%F{240}╰─%f${footer_text} %F{244}❯%f%F{240}${dashes}%f"
+  print -P -- "%F{244}╰─%f${footer_text} %F{$status_color}❯%f%F{$status_color}${dashes}%f"
+}
+
+# Prepend ╭─ to p10k's transient prompt. p10k builds _p9k_transient_prompt
+# during its init, which runs after all plugins are sourced — so on first load
+# the variable doesn't exist yet. Use a one-shot precmd hook to inject once
+# p10k is guaranteed initialized. On re-source, 90-finalize.zsh injects
+# immediately after `p10k reload` — this hook then fires once and is a no-op
+# (the pattern already matched).
+function _rad_p10k_inject_transient_prefix() {
+  add-zsh-hook -d precmd _rad_p10k_inject_transient_prefix
+  (( $+_p9k_transient_prompt )) || return 0
+  _p9k_transient_prompt=${_p9k_transient_prompt/'%b%k%s%u%(?'/'%b%k%s%u%F{244}╭─%(?'}
 }
 
 add-zsh-hook preexec _rad_p10k_footer_preexec
 add-zsh-hook precmd  _rad_p10k_footer_precmd
+add-zsh-hook precmd  _rad_p10k_inject_transient_prefix
