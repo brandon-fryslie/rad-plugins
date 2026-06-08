@@ -15,4 +15,10 @@ typeset -g POWERLEVEL9K_DISABLE_HOT_RELOAD=false
 
 # If p10k is already loaded, reload configuration.
 # This works even with POWERLEVEL9K_DISABLE_HOT_RELOAD=true.
-(( ! $+functions[p10k] )) || p10k reload
+# Also re-inject ╭─ into the transient prompt (50-transient.zsh sets up a
+# one-shot precmd for the first-load path; this handles the reload path).
+(( ! $+functions[p10k] )) || {
+  p10k reload
+  (( $+_p9k_transient_prompt )) && \
+    _p9k_transient_prompt=${_p9k_transient_prompt/'%b%k%s%u%(?'/'%b%k%s%u%F{244}╭─%(?'}
+}
