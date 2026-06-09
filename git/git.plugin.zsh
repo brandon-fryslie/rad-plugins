@@ -71,7 +71,9 @@ really-really-amend() {
   if [[ -n $1 ]]; then
     upstream_remote=$1
   else
-    upstream_remote=${$(git rev-parse --verify "${branch_name}@{upstream}" --symbolic-full-name --abbrev-ref 2>/dev/null)%/*}
+    # Read the tracked remote from its authoritative source. Parsing it out of
+    # the "remote/branch" abbrev-ref string breaks on branch names with slashes.
+    upstream_remote="$(git config --get "branch.${branch_name}.remote")"
 
     [[ -z $upstream_remote ]] && upstream_remote=origin
 
