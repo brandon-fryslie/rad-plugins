@@ -12,6 +12,10 @@ permissions:
 jobs:
   review:
     name: Review
+    # Only run on this repo's own PRs. Fork PRs don't run here (they have no
+    # secret anyway); a fork that wants reviews runs this workflow on its own
+    # account.
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Checkout pull request
