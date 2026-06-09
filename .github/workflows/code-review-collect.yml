@@ -1,0 +1,26 @@
+name: Collect PR coordinates
+
+# Stage 1 of the fork-safe review split. Runs untrusted (on the PR's own code)
+# and therefore holds NO secret. Its only job is to record which PR needs review
+# — the number and head SHA — and hand them to the trusted reviewer (stage 2,
+# code-review.yml) as an artifact. It checks out nothing and runs no PR code.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  collect:
+    name: Record PR coordinates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write coordinates
+        run: |
+          mkdir -p pr
+          echo "${{ github.event.pull_request.number }}" > pr/number
+          echo "${{ github.event.pull_request.head.sha }}" > pr/head_sha
+
+      - name: Upload coordinates
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-coordinates
+          path: pr/
