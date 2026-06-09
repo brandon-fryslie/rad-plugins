@@ -3,10 +3,13 @@ name: AI Code Review with Z.ai
 # Stage 2 of the fork-safe review split. Triggered by the collector (stage 1,
 # code-review-collect.yml) finishing. workflow_run ALWAYS runs the default
 # branch's workflow file with the default branch's secrets — i.e. trusted base
-# context — regardless of whether the PR came from a fork. This job holds the
-# secret but checks out NO PR code: it receives only the PR number and head SHA
-# as plain text, and the z.ai action fetches the diff and posts the review
-# through the GitHub API. Fork code never lands on the secret-bearing runner.
+# context — regardless of whether the PR came from a fork.
+#
+# This job holds the secret and DOES check out code — but only the base branch
+# (the repo's own trusted code), never the PR/fork head. That gives the review
+# agent the full codebase to read for context, while the authoritative changed
+# surface comes from the diff the action fetches via the GitHub API. The fork's
+# code is never written to or executed on the secret-bearing runner.
 on:
   workflow_run:
     workflows: ["Collect PR coordinates"]
@@ -25,18 +28,25 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
+      - name: Check out base branch for review context
+        # No ref: workflow_run checks out the default branch (master) — trusted
+        # base code, never the fork head. The review agent reads this tree for
+        # context; the diff itself comes from the API.
+        uses: actions/checkout@v6
+
       - name: Download PR coordinates
         uses: actions/download-artifact@v4
         with:
           name: pr-coordinates
+          path: ${{ runner.temp }}/pr-coordinates
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Read coordinates
         id: pr
         run: |
-          echo "number=$(cat number)" >> "$GITHUB_OUTPUT"
-          echo "head_sha=$(cat head_sha)" >> "$GITHUB_OUTPUT"
+          echo "number=$(cat "$RUNNER_TEMP/pr-coordinates/number")" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$(cat "$RUNNER_TEMP/pr-coordinates/head_sha")" >> "$GITHUB_OUTPUT"
 
       - name: Code Review
         uses: brandon-fryslie/zai-coding-agent-review@v1
