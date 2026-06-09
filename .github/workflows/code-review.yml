@@ -1,46 +1,25 @@
 name: AI Code Review with Z.ai
 
-# Stage 2 of the fork-safe review split. Triggered by the collector (stage 1,
-# code-review-collect.yml) finishing. workflow_run ALWAYS runs the default
-# branch's workflow file with the default branch's secrets — i.e. trusted base
-# context — regardless of whether the PR came from a fork. This job holds the
-# secret but checks out NO PR code: it receives only the PR number and head SHA
-# as plain text, and the z.ai action fetches the diff and posts the review
-# through the GitHub API. Fork code never lands on the secret-bearing runner.
 on:
-  workflow_run:
-    workflows: ["Collect PR coordinates"]
-    types: [completed]
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
-  actions: read          # read the collector run's artifact
-  pull-requests: write   # post the review
+  issues: write
+  pull-requests: write
 
 jobs:
   review:
     name: Review
-    # Only review when the collector succeeded — a failed collector means no
-    # trustworthy coordinates, so there is nothing to review.
-    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - name: Download PR coordinates
-        uses: actions/download-artifact@v4
+      - name: Checkout pull request
+        uses: actions/checkout@v6
         with:
-          name: pr-coordinates
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Read coordinates
-        id: pr
-        run: |
-          echo "number=$(cat number)" >> "$GITHUB_OUTPUT"
-          echo "head_sha=$(cat head_sha)" >> "$GITHUB_OUTPUT"
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Code Review
         uses: brandon-fryslie/zai-coding-agent-review@v1
         with:
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
-          PR_NUMBER: ${{ steps.pr.outputs.number }}
-          HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
