@@ -1,23 +1,57 @@
 name: AI Code Review with Z.ai
 
+# Two triggers, split by trust class. The z.ai action reads the changed files
+# from the GitHub API (pulls.listFiles) and posts via the API — it never needs
+# the PR's code on disk. The checkout only gives the review agent surrounding
+# context, and the agent is read-only (Bash/Edit/Write/WebFetch disallowed).
+#
+# So the only workflow-level risk is the generic one: a secret-bearing job
+# touching checked-out fork code. We avoid it by never checking out fork code
+# in a job that holds the secret.
 on:
   pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_target:
     types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
-  issues: write
   pull-requests: write
 
 jobs:
-  review:
-    name: Review
+  # Same-repo branches are trusted contributors. Run on the `pull_request`
+  # event and check out the PR head so the agent has full, current context.
+  review-internal:
+    name: Review (internal branch)
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout pull request
+      - name: Checkout pull request head
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Code Review
+        uses: brandon-fryslie/zai-coding-agent-review@v1
+        with:
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+
+  # Fork PRs are untrusted. `pull_request_target` runs in the base (trusted)
+  # context, so the secret is available and github.event.pull_request is present
+  # (the action requires it). We check out the BASE branch only — fork code is
+  # never written to this secret-bearing runner. The action still reviews the
+  # fork's diff (fetched via API) and posts the review (via API).
+  review-fork:
+    name: Review (fork)
+    if: >-
+      github.event_name == 'pull_request_target' &&
+      github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout base for context (no fork code)
+        uses: actions/checkout@v6
 
       - name: Code Review
         uses: brandon-fryslie/zai-coding-agent-review@v1
