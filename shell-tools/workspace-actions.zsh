@@ -31,7 +31,7 @@ workspace-actions() {
   fi
 
   local context=$(_wa_detect_context)
-  local -a actions=($(_wa_get_actions_for_context "$context"))
+  local -a actions=("${(f)$(_wa_get_actions_for_context "$context")}")
 
   # Check if we have any actions
   if [[ ${#actions} -eq 0 ]]; then
@@ -187,7 +187,7 @@ _wa_get_actions_for_context() {
     fi
   done
 
-  echo "${matching_actions[@]}"
+  printf '%s\n' "${matching_actions[@]}"
 }
 
 # Execute selected action
@@ -260,8 +260,8 @@ _wa_tmux_sessions() {
         --reverse)
 
   if [[ -n "$session" ]]; then
-    tmux switch-client -t "$session" 2>/dev/null || \
-      echo "Switched to session: $session (use 'tmux attach -t $session' to attach)"
+    tmux switch-client -t "$session" || \
+      echo "Error: failed to switch to tmux session '$session'" >&2
   fi
 }
 
