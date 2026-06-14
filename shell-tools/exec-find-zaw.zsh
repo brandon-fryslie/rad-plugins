@@ -14,7 +14,7 @@ bindkey '^[E' zaw-rad-exec-find
 ### action append to buffer: append file path to buffer
 function zaw-src-rad-exec-find() {
     local title="executable files"
-    : ${(A)candidates::=$(find . -perm -u=x -not -path "./.*/*" -type f)}
+    candidates=( ${(f)"$(find . -perm -u=x -not -path "./.*/*" -type f)"} )
     : ${(A)cand_descriptions::=$candidates}
 
     actions=(\
@@ -39,11 +39,13 @@ function zaw-rad-exec-find-run() {
 }
 
 function zaw-rad-exec-find-cd-run() {
-    zaw-rad-buffer-action "cd \"$(dirname \"$1\")\" && \"./$(basename \"$1\")\""
+    local dir=${(q)$(dirname "$1")} file=${(q)$(basename "$1")}
+    zaw-rad-buffer-action "cd ${dir} && ./${file}"
 }
 
 function zaw-rad-exec-find-cd-edit-file() {
-    zaw-rad-buffer-action "cd \"$(dirname \"$1\")\" && ${VISUAL:-${EDITOR:-vi}} \"$(basename \"$1\")\""
+    local dir=${(q)$(dirname "$1")} file=${(q)$(basename "$1")}
+    zaw-rad-buffer-action "cd ${dir} && ${VISUAL:-${EDITOR:-vi}} ${file}"
 }
 
 function zaw-rad-exec-find-cd-edit-repo() {
