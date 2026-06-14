@@ -358,8 +358,8 @@ gwt-undo-sync() {
     sha="${line#*:}"
 
     if [[ "$type" == "main" ]]; then
-      rad-yellow "Restoring main ($(pwd)) to $sha"
-      git reset --hard "$sha"
+      rad-yellow "Restoring main ($path) to $sha"
+      git -C "$path" reset --hard "$sha"
     elif [[ "$type" == "wt" ]]; then
       rad-yellow "Restoring ${path:t} to $sha"
       git -C "$path" reset --hard "$sha"
