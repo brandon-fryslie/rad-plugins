@@ -549,7 +549,10 @@ function proj2z {
   # Use fzf to select project(s) with multiple actions
   # CTRL-S loads git status for all projects
   # CTRL-P toggles preview pane
-  selected=$(fzf \
+  # --expect=ctrl-g: fzf prefixes output with the triggering key so action is
+  # determined from structured output, not side-channel temp files
+  local fzf_output
+  fzf_output=$(fzf \
     --multi \
     --ansi \
     --height=60% \
@@ -558,32 +561,27 @@ function proj2z {
     --query="$initial_query" \
     --header="CTRL-S=git status  CTRL-P=preview  CTRL-G=github" \
     --disabled \
+    --expect=ctrl-g \
     --bind "start:reload:$filter_cmd" \
     --bind "change:reload:$filter_cmd" \
     --bind "ctrl-s:reload:$status_loader_cmd" \
     --bind "ctrl-p:toggle-preview" \
-    --bind "ctrl-g:execute-silent(echo {+} > /tmp/proj2-github)+accept" \
     --preview="$preview_cmd" \
     --preview-window=right:50%:wrap \
     --select-1 \
     --exit-0)
 
-  if [[ -z $selected ]]; then
-    # Check for special actions
-    if [[ -f /tmp/proj2-github ]]; then
-      action="github"
-      selected=$(<"/tmp/proj2-github")
-      rm -f /tmp/proj2-github
-    elif [[ -f /tmp/proj2-print ]]; then
-      action="print"
-      selected=$(<"/tmp/proj2-print")
-      rm -f /tmp/proj2-print
-    else
-      # User cancelled
-      return 1
-    fi
-  else
+  local -a fzf_lines
+  fzf_lines=("${(@f)fzf_output}")
+  local key="${fzf_lines[1]}"
+  selected="${(j:\n:)fzf_lines[2,-1]}"
+
+  if [[ $key == "ctrl-g" && -n $selected ]]; then
+    action="github"
+  elif [[ -n $selected ]]; then
     action="cd"
+  else
+    return 1
   fi
 
   # Handle multi-select (split by newlines)
@@ -636,12 +634,6 @@ function proj2z {
       done
       ;;
 
-    print)
-      # Print paths
-      for item in "${selected_items[@]}"; do
-        echo "${project_paths[$item]}"
-      done
-      ;;
   esac
 }
 
