@@ -113,12 +113,24 @@ module DockerSupport
       end
     end.map { |thread| thread.value }.reduce({}) do |accum, host_image_data|
       host_image_data.each do |image|
+        untagged = image[:repo] == '<none>' || image[:tag] == '<none>'
         if accum.has_key?(image[:sha])
-          accum[image[:sha]][:hosts].push(image[:host])
+          if untagged
+            accum[image[:sha]][:untagged_hosts].push(image[:host])
+          else
+            accum[image[:sha]][:tagged_hosts].push(image[:host])
+          end
         else
-          image[:full_name] = "#{image[:repo]}:#{image[:tag]}"
-          accum[image[:sha]] = image
-          accum[image[:sha]][:hosts] = [image[:host]]
+          accum[image[:sha]] = {
+            :sha => image[:sha],
+            :repo => image[:repo],
+            :tag => image[:tag],
+            :full_name => image[:full_name],
+            :size => image[:size],
+            :host => image[:host],
+            :untagged_hosts => untagged ? [image[:host]] : [],
+            :tagged_hosts => untagged ? [] : [image[:host]]
+          }
         end
       end
       accum
@@ -126,7 +138,7 @@ module DockerSupport
   end
 
   def DockerSupport.get_untagged_images
-    DockerSupport.get_docker_image_data.select { |image| image[:repo] == '<none>' || image[:tag] == '<none>' }
+    DockerSupport.get_docker_image_data.select { |image| image[:untagged_hosts].any? }
   end
 
   # Get information about the docker containers on a host
