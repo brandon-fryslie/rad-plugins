@@ -91,7 +91,7 @@ module DockerSupport
     format_string = '{{.ID}}\|{{.Repository}}\|{{.Tag}}\|{{.Size}}'
 
     ENV['DOCKER_HOST'] = docker_host
-    `docker images --format #{format_string} | tail -n +2`.lines.map do |line|
+    `docker images --format #{format_string}`.lines.map do |line|
       out = line.split('|')
       {
         :full_name => "#{out[1]}:#{out[2]}",
