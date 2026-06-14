@@ -1,4 +1,4 @@
-name: AI Code Review with Z.ai
+name: AI Code Review
 
 on:
   pull_request:
@@ -26,4 +26,5 @@ jobs:
       - name: Code Review
         uses: brandon-fryslie/zai-coding-agent-review@v1
         with:
-          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+          PROVIDER: codex
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
