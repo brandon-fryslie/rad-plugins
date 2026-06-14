@@ -83,7 +83,11 @@ really-really-amend() {
   fi
 
   local default_branch
-  default_branch="$(git-get-default-branch)"
+  # [LAW:no-silent-failure] abort if default branch cannot be determined — an empty default_branch would silently pass the guard below
+  if ! default_branch="$(git-get-default-branch)"; then
+    rad-red "really-really-amend: cannot determine default branch, aborting"
+    return 1
+  fi
 
   if [[ "${branch_name}" == "${default_branch}" ]]; then
     rad-red "ERROR: Do not force push on the default branch (branch: ${default_branch})"
