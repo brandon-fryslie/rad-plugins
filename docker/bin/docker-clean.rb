@@ -29,8 +29,8 @@ def clean_none_images
   images = DockerSupport.get_untagged_images
   puts "Found #{images.length.to_s.yellow} <none> images"
   images.each do |image|
-    DockerSupport.all_hosts do |docker_host|
-      puts "Removing image #{image[:repo]} with tag #{image[:tag]} on #{docker_host}"
+    image[:untagged_hosts].each do |docker_host|
+      puts "Removing image #{image[:repo]} with tag #{image[:tag]} on #{docker_host.empty? ? 'local' : docker_host}"
       DockerSupport.command docker_host, "docker rmi #{image[:sha]}"
     end
   end
