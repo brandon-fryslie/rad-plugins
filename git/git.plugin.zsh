@@ -48,20 +48,19 @@ alias gdst="git diff --stat"
 git-get-default-branch() {
   local candidate
 
-  candidate="$(git config --get init.defaultBranch)"
-  [[ -n "${candidate}" ]]  && { echo "${candidate}"; return }
+  # [LAW:no-silent-failure] fast path: symbolic ref set by 'git remote set-head origin -a'
+  candidate="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||')"
+  [[ -n "${candidate}" ]] && { echo "${candidate}"; return }
 
-  candidate="$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')"
-  [[ -n "${candidate}" ]]  && { echo "${candidate}"; return }
+  # [LAW:no-silent-failure] network fallback: ask the remote directly
+  candidate="$(git remote show origin 2>/dev/null | sed -n '/HEAD branch/s/.*: //p')"
+  [[ -n "${candidate}" ]] && { echo "${candidate}"; return }
 
-  candidate="$(git rev-parse --verify --quiet "main" >/dev/null 2>&1)" && { echo "main"; return }
-  [[ -n "${candidate}" ]]  && { echo "${candidate}"; return }
+  git rev-parse --verify --quiet "main" >/dev/null 2>&1 && { echo "main"; return }
+  git rev-parse --verify --quiet "master" >/dev/null 2>&1 && { echo "master"; return }
 
-  candidate="$(git rev-parse --verify --quiet "master" >/dev/null 2>&1)" && { echo "master"; return }
-  [[ -n "${candidate}" ]]  && { echo "${candidate}"; return }
-
-  # main is the new default
-  return "main"
+  rad-red "git-get-default-branch: cannot determine default branch for this repo"
+  return 1
 }
 
 really-really-amend() {
@@ -84,7 +83,11 @@ really-really-amend() {
   fi
 
   local default_branch
-  default_branch="$(git-get-default-branch)"
+  # [LAW:no-silent-failure] abort if default branch cannot be determined — an empty default_branch would silently pass the guard below
+  if ! default_branch="$(git-get-default-branch)"; then
+    rad-red "really-really-amend: cannot determine default branch, aborting"
+    return 1
+  fi
 
   if [[ "${branch_name}" == "${default_branch}" ]]; then
     rad-red "ERROR: Do not force push on the default branch (branch: ${default_branch})"
