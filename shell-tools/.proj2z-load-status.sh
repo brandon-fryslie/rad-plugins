@@ -5,7 +5,7 @@
 query="$1"
 project_data_file="$2"
 script_dir="$3"
-git_status_script="${script_dir}/.proj2-git-status.sh"
+git_status_script="${script_dir}/.proj2z-git-status.sh"
 
 # Suppress job control
 setopt LOCAL_OPTIONS NO_NOTIFY NO_MONITOR
