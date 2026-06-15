@@ -327,8 +327,9 @@ _gwt-save-state() {
   state_file="$git_dir/gwt-sync-state"
 
   # Save timestamp and main HEAD
+  # [LAW:no-silent-failure] Use tab delimiter; colons are valid in paths and would corrupt parsing.
   echo "# gwt-sync-all state - $(date -Iseconds)" > "$state_file"
-  echo "main:$(pwd):$(git rev-parse HEAD)" >> "$state_file"
+  printf "main\t%s\t%s\n" "$(pwd)" "$(git rev-parse HEAD)" >> "$state_file"
 
   # Save each worktree's HEAD
   while IFS= read -r line; do
@@ -336,7 +337,7 @@ _gwt-save-state() {
       wt_path="${match[1]}"
       [[ "$wt_path" == "$(pwd)" ]] && continue
       wt_head="$(git -C "$wt_path" rev-parse HEAD 2>/dev/null)"
-      echo "wt:$wt_path:$wt_head" >> "$state_file"
+      printf "wt\t%s\t%s\n" "$wt_path" "$wt_head" >> "$state_file"
     fi
   done < <(git worktree list --porcelain 2>/dev/null)
 
@@ -357,13 +358,9 @@ gwt-undo-sync() {
   rad-yellow "Restoring from: $(head -1 "$state_file")"
   echo ""
 
-  local line type path sha
-  while IFS= read -r line; do
-    [[ "$line" =~ ^# ]] && continue
-    type="${line%%:*}"
-    line="${line#*:}"
-    path="${line%%:*}"
-    sha="${line#*:}"
+  local type path sha
+  while IFS=$'\t' read -r type path sha; do
+    [[ "$type" =~ ^# ]] && continue
 
     if [[ "$type" == "main" ]]; then
       rad-yellow "Restoring main ($path) to $sha"
@@ -1799,4 +1796,4 @@ _gwt-completion-reply() {
 
 # Register with compctl - works immediately during plugin load
 # The init hook (rad_git_plugin_init_hook) registers with compdef after compinit
-compctl -K _gwt-completion-reply gwt-diff gwt-push gwt-pull gwt-sync gwt gwtd gwtds gwta gwtc gwtl gwtst
+compctl -K _gwt-completion-reply gwt-diff gwt-push gwt-pull gwt-sync gwt gwtd gwtds gwta gwtc

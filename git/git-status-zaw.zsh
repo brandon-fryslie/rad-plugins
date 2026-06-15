@@ -2,9 +2,17 @@ function zaw-rad-git-status-get-candidates() {
     git rev-parse --git-dir >/dev/null 2>&1
     [[ $? == 0 ]] || return $?
     local file_list="$(git status --porcelain)"
-    local file_list_cands="$(echo $file_list | awk '{print $2}')"
 
-    : ${(A)filter_select_candidates::=${(f)${file_list_cands}}}
+    # [LAW:no-silent-failure] Use -z (NUL-delimited) to handle paths with spaces and renames.
+    # Each entry is "XY path"; rename old-paths have no XY prefix and are skipped.
+    local -a raw_cands cand_paths
+    raw_cands=("${(@0)$(git status --porcelain -z 2>/dev/null)}")
+    local cand
+    for cand in "${raw_cands[@]}"; do
+        [[ "${cand:0:2}" =~ [A-Z?!\ ][A-Z?!\ ] ]] && cand_paths+=("${cand:3}")
+    done
+
+    : ${(A)filter_select_candidates::=${cand_paths}}
 
     : ${(A)filter_select_descriptions::=${${(f)${file_list}}/ M /[modified]        }}
     : ${(A)filter_select_descriptions::=${${(M)filter_select_descriptions}/AM /[add|modified]    }}
@@ -36,29 +44,25 @@ function zaw-rad-git-status() {
 }
 
 function rad-git-stage {
-    git add "${FILTER_SELECT_SELECTED}" &>/dev/null
-    # echo "staging file: ${FILTER_SELECT_SELECTED}" >> /tmp/zaw.log
+    git add "${FILTER_SELECT_SELECTED}"
 }
 
 zle -N rad-git-stage
 
 function rad-git-unstage {
-    git reset "${FILTER_SELECT_SELECTED}" &>/dev/null
-    # echo "unstaging file: ${FILTER_SELECT_SELECTED}" >> /tmp/zaw.log
+    git reset "${FILTER_SELECT_SELECTED}"
 }
 
 zle -N rad-git-unstage
 
 function rad-git-stage-all {
-    git add . &>/dev/null
-    # echo "unstaging file: ${FILTER_SELECT_SELECTED}" >> /tmp/zaw.log
+    git add .
 }
 
 zle -N rad-git-stage-all
 
 function rad-git-unstage-all {
-    git reset . &>/dev/null
-    # echo "unstaging file: ${FILTER_SELECT_SELECTED}" >> /tmp/zaw.log
+    git reset .
 }
 
 zle -N rad-git-unstage-all
