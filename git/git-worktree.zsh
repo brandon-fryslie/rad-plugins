@@ -327,10 +327,11 @@ _gwt-save-state() {
   state_file="$git_dir/gwt-sync-state"
 
   # Save timestamp and main HEAD
-  # [LAW:types-are-the-program] NUL separates fields within each record; NUL cannot appear in
-  # any POSIX path, making this the only truly safe delimiter (tabs and newlines are valid in paths).
+  # [LAW:types-are-the-program] Line-safe encoding: "type sha" on line 1, bare path on line 2.
+  # No special delimiter needed — type is always main/wt (no spaces), sha is always hex (no spaces).
+  # `read -r` preserves any characters in the path line, including spaces, colons, and tabs.
   echo "# gwt-sync-all state - $(date -Iseconds)" > "$state_file"
-  printf 'main\0%s\0%s\n' "$(pwd)" "$(git rev-parse HEAD)" >> "$state_file"
+  printf 'main %s\n%s\n' "$(git rev-parse HEAD)" "$(pwd)" >> "$state_file"
 
   # Save each worktree's HEAD
   while IFS= read -r line; do
@@ -338,7 +339,7 @@ _gwt-save-state() {
       wt_path="${match[1]}"
       [[ "$wt_path" == "$(pwd)" ]] && continue
       wt_head="$(git -C "$wt_path" rev-parse HEAD 2>/dev/null)"
-      printf 'wt\0%s\0%s\n' "$wt_path" "$wt_head" >> "$state_file"
+      printf 'wt %s\n%s\n' "$wt_head" "$wt_path" >> "$state_file"
     fi
   done < <(git worktree list --porcelain 2>/dev/null)
 
@@ -359,11 +360,11 @@ gwt-undo-sync() {
   rad-yellow "Restoring from: $(head -1 "$state_file")"
   echo ""
 
-  local type path sha
-  while IFS= read -r line; do
-    [[ "$line" =~ ^# ]] && continue
-    local -a fields=("${(@0)line}")
-    type="$fields[1]" path="$fields[2]" sha="$fields[3]"
+  local type sha path header
+  while IFS= read -r header; do
+    [[ "$header" =~ ^# ]] && continue
+    IFS= read -r path
+    type="${header%% *}" sha="${header#* }"
 
     if [[ "$type" == "main" ]]; then
       rad-yellow "Restoring main ($path) to $sha"

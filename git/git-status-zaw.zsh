@@ -9,7 +9,9 @@ function zaw-rad-git-status-get-candidates() {
     raw_cands=("${(@0)$(git status --porcelain -z)}")
     local cand
     for cand in "${raw_cands[@]}"; do
-        [[ "${cand:0:2}" =~ [A-Z?!\ ][A-Z?!\ ] ]] && cand_paths+=("${cand:3}")
+        # All valid porcelain entries are "XY path" — position 2 is always a space.
+        # Rename old-paths appear as bare filenames with no XY prefix, so position 2 is never a space.
+        [[ "${cand:2:1}" == " " ]] && cand_paths+=("${cand:3}")
     done
 
     : ${(A)filter_select_candidates::=${cand_paths}}
