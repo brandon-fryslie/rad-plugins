@@ -6,13 +6,12 @@ bindkey '^[B' zaw-git-branch
 
 ### Use this to show git branches for repo in current directory
 function zaw-src-git-branch() {
-    if ! git rev-parse -s 2>/dev/null; then
+    if ! git rev-parse --git-dir >/dev/null 2>&1; then
       return
     fi
 
     local desc="$(git for-each-ref --sort=-committerdate refs/heads/ --format='%(HEAD) %(refname:short) - %(objectname:short) - %(contents:subject) - %(authorname) (%(committerdate:relative))')"
 
-    local title=$(git branches)
     local cands="$(echo "$desc" | sed 's/^\*//')"
 
     : ${(A)candidates::=${(f)cands}}
@@ -27,7 +26,7 @@ function zaw-src-git-branch() {
         "reset hard" \
         "append to buffer" \
     )
-    options=(-t "$title")
+    options=(-t "git branches")
 }
 
 # Get the branch name from the candidate string

@@ -26,11 +26,11 @@ rad_git_plugin_init_hook() {
 
   # Register worktree completions (runs after compinit)
   if (( $+functions[compdef] )); then
-    compdef _wt-diff wt-diff
-    compdef _wt-push wt-push
-    compdef _wt-pull wt-pull
+    compdef _gwt-diff gwt-diff
+    compdef _gwt-push gwt-push
+    compdef _gwt-pull gwt-pull
     compdef _gwt gwt
-    compdef _gwt-alias gws gwd gwds gwa gwc gwl gwst
+    compdef _gwt-alias gwtd gwtds gwta gwtc
   fi
 }
 

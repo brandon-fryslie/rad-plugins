@@ -27,7 +27,7 @@ end
 def is_git_repo(path)
   File.basename(path) != '.' &&
   File.basename(path) != '..' &&
-  File.directory?(File.join(path, '.git'))
+  File.exist?(File.join(path, '.git'))
 end
 
 paths = (ARGV.length === 0) ? [Dir.pwd] : ARGV

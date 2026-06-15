@@ -36,7 +36,7 @@ function zaw-rad-git-commit() {
     local last_action="${reply[1]}"
 
     # Short circuit if they press enter
-    [[ last_action == "accept-line" ]] && { zle accept-line; return }
+    [[ $last_action == "accept-line" ]] && { zle accept-line; return }
 
     zaw-rad-select-options "--all --amend --patch --reset-author"
 
