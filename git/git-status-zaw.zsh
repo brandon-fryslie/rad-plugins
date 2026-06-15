@@ -6,7 +6,7 @@ function zaw-rad-git-status-get-candidates() {
     # [LAW:no-silent-failure] Use -z (NUL-delimited) to handle paths with spaces and renames.
     # Each entry is "XY path"; rename old-paths have no XY prefix and are skipped.
     local -a raw_cands cand_paths
-    raw_cands=("${(@0)$(git status --porcelain -z 2>/dev/null)}")
+    raw_cands=("${(@0)$(git status --porcelain -z)}")
     local cand
     for cand in "${raw_cands[@]}"; do
         [[ "${cand:0:2}" =~ [A-Z?!\ ][A-Z?!\ ] ]] && cand_paths+=("${cand:3}")

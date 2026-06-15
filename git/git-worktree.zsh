@@ -327,9 +327,10 @@ _gwt-save-state() {
   state_file="$git_dir/gwt-sync-state"
 
   # Save timestamp and main HEAD
-  # [LAW:no-silent-failure] Use tab delimiter; colons are valid in paths and would corrupt parsing.
+  # [LAW:types-are-the-program] NUL separates fields within each record; NUL cannot appear in
+  # any POSIX path, making this the only truly safe delimiter (tabs and newlines are valid in paths).
   echo "# gwt-sync-all state - $(date -Iseconds)" > "$state_file"
-  printf "main\t%s\t%s\n" "$(pwd)" "$(git rev-parse HEAD)" >> "$state_file"
+  printf 'main\0%s\0%s\n' "$(pwd)" "$(git rev-parse HEAD)" >> "$state_file"
 
   # Save each worktree's HEAD
   while IFS= read -r line; do
@@ -337,7 +338,7 @@ _gwt-save-state() {
       wt_path="${match[1]}"
       [[ "$wt_path" == "$(pwd)" ]] && continue
       wt_head="$(git -C "$wt_path" rev-parse HEAD 2>/dev/null)"
-      printf "wt\t%s\t%s\n" "$wt_path" "$wt_head" >> "$state_file"
+      printf 'wt\0%s\0%s\n' "$wt_path" "$wt_head" >> "$state_file"
     fi
   done < <(git worktree list --porcelain 2>/dev/null)
 
@@ -359,8 +360,10 @@ gwt-undo-sync() {
   echo ""
 
   local type path sha
-  while IFS=$'\t' read -r type path sha; do
-    [[ "$type" =~ ^# ]] && continue
+  while IFS= read -r line; do
+    [[ "$line" =~ ^# ]] && continue
+    local -a fields=("${(@0)line}")
+    type="$fields[1]" path="$fields[2]" sha="$fields[3]"
 
     if [[ "$type" == "main" ]]; then
       rad-yellow "Restoring main ($path) to $sha"
