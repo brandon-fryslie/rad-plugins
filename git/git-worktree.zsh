@@ -184,7 +184,11 @@ gwt-push() {
 
   # Check if there are commits to push
   local commit_count
-  commit_count="$(git -C "$from_wt_dir" rev-list --count "$to_branch".."$from_branch" 2>/dev/null)"
+  commit_count="$(git -C "$from_wt_dir" rev-list --count "$to_branch".."$from_branch")"
+  if [[ -z "$commit_count" ]]; then
+    rad-red "Error: Could not determine commit count (rev-list failed for $to_branch..$from_branch)"
+    return 1
+  fi
 
   if [[ "$commit_count" -eq 0 ]]; then
     rad-green "No new commits to push from '$from_wt_name' ($from_branch) to '$to_wt_name' ($to_branch)"
@@ -194,7 +198,7 @@ gwt-push() {
   rad-green "Pushing $commit_count commit(s) from '$from_wt_name' ($from_branch) to '$to_wt_name' ($to_branch)"
 
   # Pull with rebase in the target worktree from the source branch
-  if ! git -C "$to_wt_dir" pull --rebase . "$from_branch" 2>/dev/null; then
+  if ! git -C "$to_wt_dir" pull --rebase . "$from_branch"; then
     _gwt-resolve-conflicts "$to_wt_dir" || return 1
   fi
 
@@ -255,7 +259,11 @@ gwt-pull() {
 
   # Check if there are commits to pull
   local commit_count
-  commit_count="$(git -C "$to_wt_dir" rev-list --count "$to_branch".."$from_branch" 2>/dev/null)"
+  commit_count="$(git -C "$to_wt_dir" rev-list --count "$to_branch".."$from_branch")"
+  if [[ -z "$commit_count" ]]; then
+    rad-red "Error: Could not determine commit count (rev-list failed for $to_branch..$from_branch)"
+    return 1
+  fi
 
   if [[ "$commit_count" -eq 0 ]]; then
     rad-green "No new commits to pull from '$from_wt_name' ($from_branch)"
@@ -265,7 +273,7 @@ gwt-pull() {
   rad-green "Pulling $commit_count commit(s) from '$from_wt_name' ($from_branch) into $to_branch"
 
   # Pull with rebase from the local branch
-  if ! git -C "$to_wt_dir" pull --rebase . "$from_branch" 2>/dev/null; then
+  if ! git -C "$to_wt_dir" pull --rebase . "$from_branch"; then
     _gwt-resolve-conflicts "$to_wt_dir" || return 1
   fi
 
@@ -1105,10 +1113,18 @@ _gwt-resolve-conflicts() {
   local repo_dir="$1"
   local conflicted_files file merge_result
   local has_unresolved=0
+  local resolved_any=0
 
   while true; do
     conflicted_files=(${(f)"$(git -C "$repo_dir" diff --name-only --diff-filter=U 2>/dev/null)"})
-    [[ ${#conflicted_files[@]} -eq 0 ]] && break
+    if [[ ${#conflicted_files[@]} -eq 0 ]]; then
+      if [[ $resolved_any -eq 0 ]]; then
+        rad-red "Error: rebase failed without merge conflicts (rebase in progress, locked index, or unborn ref?)"
+        return 1
+      fi
+      break
+    fi
+    resolved_any=1
 
     rad-yellow "Auto-resolving ${#conflicted_files[@]} conflict(s):"
     has_unresolved=0
