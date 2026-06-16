@@ -90,8 +90,7 @@ module DockerSupport
   def DockerSupport.get_docker_image_data_one_host(docker_host)
     format_string = '{{.ID}}\|{{.Repository}}\|{{.Tag}}\|{{.Size}}'
 
-    ENV['DOCKER_HOST'] = docker_host
-    `docker images --format #{format_string}`.lines.map do |line|
+    `docker -H #{docker_host} images --format #{format_string}`.lines.map do |line|
       out = line.split('|')
       {
         :full_name => "#{out[1]}:#{out[2]}",
@@ -165,7 +164,6 @@ module DockerSupport
 
   # Runs a Docker command
   def DockerSupport.command(docker_host, command)
-    ENV['DOCKER_HOST'] = docker_host
-    `#{command}`
+    `DOCKER_HOST=#{docker_host} #{command}`
   end
 end
