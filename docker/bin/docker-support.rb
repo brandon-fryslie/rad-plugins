@@ -12,6 +12,7 @@ class String
 end
 
 require 'json'
+require 'open3'
 require 'optparse'
 def parse_opts
   options = {
@@ -90,8 +91,7 @@ module DockerSupport
   def DockerSupport.get_docker_image_data_one_host(docker_host)
     format_string = '{{.ID}}\|{{.Repository}}\|{{.Tag}}\|{{.Size}}'
 
-    ENV['DOCKER_HOST'] = docker_host
-    `docker images --format #{format_string}`.lines.map do |line|
+    Open3.capture2({'DOCKER_HOST' => docker_host}, "docker images --format #{format_string}").first.lines.map do |line|
       out = line.split('|')
       {
         :full_name => "#{out[1]}:#{out[2]}",
@@ -144,7 +144,7 @@ module DockerSupport
   # Get information about the docker containers on a host
   def DockerSupport.get_docker_container_data(docker_host)
     format_string = '{{.ID}}\|{{.Image}}\|{{.Command}}\|{{.CreatedAt}}\|{{.RunningFor}}\|{{.Ports}}\|{{.Status}}\|{{.Size}}\|{{.Names}}\|{{.Labels}}\|{{.Mounts}}'
-    `DOCKER_HOST=#{docker_host} docker ps --no-trunc --format #{format_string}`.lines.map do |line|
+    Open3.capture2({'DOCKER_HOST' => docker_host}, "docker ps --no-trunc --format #{format_string}").first.lines.map do |line|
       out = line.strip.split('|')
       {
         :id => out[0],
@@ -165,7 +165,6 @@ module DockerSupport
 
   # Runs a Docker command
   def DockerSupport.command(docker_host, command)
-    ENV['DOCKER_HOST'] = docker_host
-    `#{command}`
+    Open3.capture2({'DOCKER_HOST' => docker_host}, command).first
   end
 end
