@@ -44,6 +44,54 @@ function _rad_p10k_footer_preexec() {
   typeset -g _RAD_P10K_CMD_NAME=${1%% *}
 }
 
+# Fits a cwd string into at most `budget` display cells, in the spirit of
+# p10k's own dir truncation: leading path components collapse to their first
+# character (left to right, last component kept whole) until the path fits;
+# if even the fully collapsed path is too long, the tail survives behind a
+# leading …. A cwd that already fits passes through unchanged, so at generous
+# widths this is the identity. Total for any budget: the floor is a bare "…".
+function _rad_p10k_fit_cwd() {
+  local cwd=$1
+  local -i budget=$2
+  # ${(s:/:)} drops empty fields, which would eat an absolute path's leading
+  # slash — carry it separately and re-prepend on every rejoin.
+  local root=${cwd%%[^/]*}
+  local -a parts=( ${(s:/:)cwd} )
+  local -i i
+  for (( i = 1; i < $#parts && $#cwd > budget; i++ )); do
+    parts[i]=${parts[i][1]}
+    cwd="${root}${(j:/:)parts}"
+  done
+  if (( $#cwd > budget )); then
+    local -i keep=$(( budget - 1 ))
+    (( keep < 0 )) && keep=0
+    cwd="…${cwd[$#cwd - keep + 1, -1]}"
+  fi
+  print -r -- "$cwd"
+}
+
+# Assembles the colored footer line and its uncolored width-math twin from
+# the segment lists. Dynamic-scope contract (same idiom as my_git_formatter's
+# helpers): reads seg_colors, seg_texts, status_color from the caller; writes
+# footer_text, footer_text_raw back into it.
+# [LAW:one-source-of-truth] one segment list, one assembly, drives both the
+# colored line and the raw string used for width math, so the two can't drift.
+function _rad_p10k_footer_assemble() {
+  local sep='%F{240}•%f'
+  footer_text="%F{$status_color}❮%f "
+  footer_text_raw='❮ '
+  local -i i n=0
+  for (( i = 1; i <= $#seg_texts; i++ )); do
+    [[ -n ${seg_texts[i]} ]] || continue
+    (( n++ )) && { footer_text+=" ${sep} "; footer_text_raw+=' • '; }
+    # % → %% so print -P shows branch/path/command text literally instead of
+    # re-expanding it as prompt escapes; the raw string keeps the unescaped
+    # text since %% renders as a single cell.
+    footer_text+="%F{${seg_colors[i]}}${seg_texts[i]//\%/%%}%f"
+    footer_text_raw+=${seg_texts[i]}
+  done
+}
+
 # Computes footer text from the just-finished command's exit code and
 # elapsed time, then prints it. Skipped when no command actually ran
 # (start of session, bare Enter).
@@ -99,34 +147,28 @@ function _rad_p10k_footer_precmd() {
   #   cmd_name  = 65  (sage green — dimmer than VCS-clean's 76)
   # Separator dot stays dim (240) so it recedes visually.
   #
-  # [LAW:one-source-of-truth] one segment list drives both the colored line
-  # and the raw string used for width math, so the two can't drift.
   # [LAW:dataflow-not-control-flow] an empty text is an absent segment — the
   # branch's optionality lives in the value, not in splicing logic.
   local -a seg_colors=( 66           100            31     96        65          )
   local -a seg_texts=( "$timestamp" "$elapsed_str" "$cwd" "$branch" "$cmd_name" )
-
-  local sep='%F{240}•%f'
-  local footer_text="%F{$status_color}❮%f "
-  local footer_text_raw='❮ '
-  local -i i n=0
-  for (( i = 1; i <= $#seg_texts; i++ )); do
-    [[ -n ${seg_texts[i]} ]] || continue
-    (( n++ )) && { footer_text+=" ${sep} "; footer_text_raw+=' • '; }
-    # % → %% so print -P shows branch/path/command text literally instead of
-    # re-expanding it as prompt escapes; the raw string keeps the unescaped
-    # text since %% renders as a single cell.
-    footer_text+="%F{${seg_colors[i]}}${seg_texts[i]//\%/%%}%f"
-    footer_text_raw+=${seg_texts[i]}
-  done
+  local -i cwd_i=3  # cwd's slot in the lists — the one segment the fit resizes
 
   # Layout: ╰─ + footer_text + ' ❯' + N×─    (gray ❯ butts up to the dashes)
   # The ❯ is the same gray (244) as the live PROMPT_CHAR — visual rhyme
   # between the footer and the live prompt below.
-  local -i text_cells=$#footer_text_raw
   local -i prefix_cells=2  # "╰─"
   local -i sep_cells=2     # " ❯"
-  local -i dash_count=$(( COLUMNS - prefix_cells - text_cells - sep_cells ))
+
+  # Measure with the full cwd, then fit the cwd — the one unbounded segment —
+  # to the overflow and assemble again. When everything already fits, the fit
+  # is the identity and the second assembly reproduces the first byte-for-byte.
+  local footer_text footer_text_raw
+  _rad_p10k_footer_assemble
+  local -i overflow=$(( $#footer_text_raw + prefix_cells + sep_cells - COLUMNS ))
+  seg_texts[cwd_i]=$(_rad_p10k_fit_cwd "${seg_texts[cwd_i]}" $(( $#seg_texts[cwd_i] - overflow )))
+  _rad_p10k_footer_assemble
+
+  local -i dash_count=$(( COLUMNS - prefix_cells - $#footer_text_raw - sep_cells ))
   (( dash_count < 0 )) && dash_count=0
   local _empty=
   local dashes=${(l:dash_count::─:)_empty}
