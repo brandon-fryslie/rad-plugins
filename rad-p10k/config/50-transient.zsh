@@ -86,6 +86,10 @@ function _rad_p10k_footer_precmd() {
   local branch
   branch=$(command git symbolic-ref --short -q HEAD 2>/dev/null) ||
     branch=$(command git rev-parse --short HEAD 2>/dev/null)
+  # Long refs display first-12…last-12, same rule as the prompt's branch
+  # segment (30-git-formatter.zsh). Applied before the segment list so the
+  # width math sees the truncated value; empty stays empty.
+  branch=$(_rad_p10k_shorten_ref "$branch")
 
   # Per-field colors — muted to match the timestamp's teal saturation.
   #   timestamp = 66  (TIME_FOREGROUND, muted teal)

@@ -12,6 +12,17 @@
 # - Merge/rebase state
 # - Stash count
 
+# Shortens a git ref name for display: refs at most 32 characters show in
+# full; longer ones show the first 12 + … + the last 12. Empty in, empty out.
+# [LAW:single-enforcer] the one home of the ref-truncation rule — the prompt's
+# branch and tag segments and the command footer (50-transient.zsh) all route
+# through here, so the rule can't drift between them.
+function _rad_p10k_shorten_ref() {
+  local ref=$1
+  (( $#ref > 32 )) && ref[13,-13]="…"
+  print -r -- "$ref"
+}
+
 # Formatter for Git status.
 # Example output: master wip ⇣42⇡42 *42 merge ~42 +42 !42 ?42.
 function my_git_formatter() {
@@ -72,10 +83,7 @@ function my_git_formatter() {
   function _local_branch_tag() {
     local res
     if [[ -n $VCS_STATUS_LOCAL_BRANCH ]]; then
-      local branch=${(V)VCS_STATUS_LOCAL_BRANCH}
-      # If local branch name is at most 32 characters long, show it in full
-      # Otherwise show the first 12 … the last 12
-      (( $#branch > 32 )) && branch[13,-13]="…"
+      local branch=$(_rad_p10k_shorten_ref "${(V)VCS_STATUS_LOCAL_BRANCH}")
       res+="${clean}${branch//\%/%%}"
     fi
 
@@ -83,10 +91,7 @@ function my_git_formatter() {
         # Show tag only if not on a branch
         && -z $VCS_STATUS_LOCAL_BRANCH
       ]]; then
-    local tag=${(V)VCS_STATUS_TAG}
-    # If tag name is at most 32 characters long, show it in full
-    # Otherwise show the first 12 … the last 12
-    (( $#tag > 32 )) && tag[13,-13]="…"
+    local tag=$(_rad_p10k_shorten_ref "${(V)VCS_STATUS_TAG}")
     res+=" ${meta}#${clean}${tag//\%/%%}"
   fi
 
