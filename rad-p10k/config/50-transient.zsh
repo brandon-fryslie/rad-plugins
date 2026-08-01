@@ -67,11 +67,15 @@ function _rad_p10k_fit_cwd() {
   if (( ${(m)#cwd} > budget )); then
     local -i keep=$(( budget - 1 ))
     (( keep < 0 )) && keep=0
-    # Widest suffix that fits `keep` cells. A 2-cell character straddling the
-    # cut can't be split, so the suffix may land one cell under — dash_count,
-    # measured from the final assembled line, absorbs the difference.
-    while (( ${(m)#cwd} > keep )); do cwd=${cwd[2,-1]}; done
-    cwd="…${cwd}"
+    # Widest suffix that fits `keep` cells: walk once from the left,
+    # subtracting each dropped character's width from the running total —
+    # ${(m)#} is additive over code points, so the total stays exact. A
+    # 2-cell character straddling the cut can't be split, so the suffix may
+    # land one cell under — dash_count, measured from the final assembled
+    # line, absorbs the difference.
+    local -i w=${(m)#cwd} j=1
+    while (( w > keep )); do w=$(( w - ${(m)#cwd[j]} )); (( j++ )); done
+    cwd="…${cwd[j,-1]}"
   fi
   print -r -- "$cwd"
 }

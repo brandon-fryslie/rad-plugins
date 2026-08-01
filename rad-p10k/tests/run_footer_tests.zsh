@@ -14,6 +14,17 @@
 
 zmodload zsh/datetime
 
+# Loud precondition, not a graceful skip: if the pinned locale is unavailable,
+# ${(m)#} byte-counts and every width assertion becomes a red herring — probe
+# the exact property the suite depends on and fail with the real cause.
+typeset _wide=日
+if (( ${(m)#_wide} != 2 )); then
+  print -ru2 -- "FATAL: no usable UTF-8 locale (\${(m)#} is not counting display cells);"
+  print -ru2 -- "       the width assertions below require en_US.UTF-8 to be installed."
+  exit 1
+fi
+unset _wide
+
 typeset -g script_dir=${${(%):-%x}:A:h}
 source "${script_dir:h}/config/30-git-formatter.zsh"
 source "${script_dir:h}/config/50-transient.zsh"
