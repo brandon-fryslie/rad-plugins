@@ -80,7 +80,9 @@ rad-p10k includes a custom `my_git_formatter` function that provides:
 
 After each command, a footer line is printed before the next prompt,
 showing timestamp, duration, cwd, git branch (when in a repo), and the
-command name. The `❮` glyph is green on success, red on non-zero exit:
+command name. Long branch names truncate to `first-12…last-12`, the same
+rule as the prompt's branch segment. The `❮` glyph is green on success,
+red on non-zero exit:
 
 ```
 <command output>
