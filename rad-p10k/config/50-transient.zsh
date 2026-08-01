@@ -4,8 +4,8 @@
 # completed command (exit status, duration). Visual shape per command
 # boundary, with the live (typing) prompt below:
 #
-#     ╰─❮ 14:23:01 • 234ms • ~/code/cc-jstream • git ❯──────...─────
-#     ╭─~/code/cc-jstream  feature/branch ──────────...─── 14:23:01
+#     ╰─❮ 2:23:01 PM • 234ms • ~/code/cc-jstream • feature/branch • git ❯──...──
+#     ╭─~/code/cc-jstream  feature/branch ──────────...─── 2:23:01 PM
 #     ╰─❯ <cursor>
 #
 # The ❮ glyph is colored green on success and red on non-zero exit —
@@ -80,15 +80,41 @@ function _rad_p10k_footer_precmd() {
   # Timestamp at footer-print time (when the command finished, not started).
   local timestamp=${(%):-%D{%-I:%M:%S %p}}
 
+  # Branch when on one, short commit when detached, empty outside a repo.
+  # [LAW:no-silent-failure] exception: git's stderr here is only "not a git
+  # repository" — a domain absence, not a failure; it becomes an absent segment.
+  local branch
+  branch=$(command git symbolic-ref --short -q HEAD 2>/dev/null) ||
+    branch=$(command git rev-parse --short HEAD 2>/dev/null)
+
   # Per-field colors — muted to match the timestamp's teal saturation.
   #   timestamp = 66  (TIME_FOREGROUND, muted teal)
   #   duration  = 100 (dim olive-yellow)
   #   cwd       = 31  (DIR_FOREGROUND, blue)
+  #   branch    = 96  (muted purple; absent outside a git repo)
   #   cmd_name  = 65  (sage green — dimmer than VCS-clean's 76)
   # Separator dot stays dim (240) so it recedes visually.
+  #
+  # [LAW:one-source-of-truth] one segment list drives both the colored line
+  # and the raw string used for width math, so the two can't drift.
+  # [LAW:dataflow-not-control-flow] an empty text is an absent segment — the
+  # branch's optionality lives in the value, not in splicing logic.
+  local -a seg_colors=( 66           100            31     96        65          )
+  local -a seg_texts=( "$timestamp" "$elapsed_str" "$cwd" "$branch" "$cmd_name" )
+
   local sep='%F{240}•%f'
-  local footer_text="%F{$status_color}❮%f %F{66}${timestamp}%f ${sep} %F{100}${elapsed_str}%f ${sep} %F{31}${cwd}%f ${sep} %F{65}${cmd_name}%f"
-  local footer_text_raw="❮ ${timestamp} • ${elapsed_str} • ${cwd} • ${cmd_name}"
+  local footer_text="%F{$status_color}❮%f "
+  local footer_text_raw='❮ '
+  local -i i n=0
+  for (( i = 1; i <= $#seg_texts; i++ )); do
+    [[ -n ${seg_texts[i]} ]] || continue
+    (( n++ )) && { footer_text+=" ${sep} "; footer_text_raw+=' • '; }
+    # % → %% so print -P shows branch/path/command text literally instead of
+    # re-expanding it as prompt escapes; the raw string keeps the unescaped
+    # text since %% renders as a single cell.
+    footer_text+="%F{${seg_colors[i]}}${seg_texts[i]//\%/%%}%f"
+    footer_text_raw+=${seg_texts[i]}
+  done
 
   # Layout: ╰─ + footer_text + ' ❯' + N×─    (gray ❯ butts up to the dashes)
   # The ❯ is the same gray (244) as the live PROMPT_CHAR — visual rhyme

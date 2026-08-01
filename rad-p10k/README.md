@@ -78,14 +78,15 @@ rad-p10k includes a custom `my_git_formatter` function that provides:
 
 ## Command Footer
 
-After each command, a two-line footer is printed before the next prompt:
+After each command, a footer line is printed before the next prompt,
+showing timestamp, duration, cwd, git branch (when in a repo), and the
+command name. The `❮` glyph is green on success, red on non-zero exit:
 
 ```
 <command output>
-─────────────────────────────────────────────────────────────────...─
-╰─❮ ✓ exit=0 • 234ms
+╰─❮ 2:23:01 PM • 234ms • ~/code/cc-jstream • feature/branch • git ❯───...───
 
-╭─~/code/cc-jstream  branch ───────...─── 14:23:01
+╭─~/code/cc-jstream  feature/branch ───────...─── 2:23:01 PM
 ╰─❯ next_command
 ```
 
@@ -97,8 +98,9 @@ only reflect the *previous* command's status.
 The arrow on the user-input line is intentionally neutral; status info
 lives in the footer where it can be correct.
 
-P10k's built-in transient prompt is disabled (`POWERLEVEL9K_TRANSIENT_PROMPT=off`)
-because the two mechanisms conflict.
+P10k's built-in transient prompt is enabled (`POWERLEVEL9K_TRANSIENT_PROMPT=same-dir`)
+and collapses prior prompts to a short form on Enter. It is independent
+of the footer, which is plain scrollback text printed from `precmd`.
 
 The footer is suppressed for the first prompt of a session and for
 empty-Enter on a blank input line (no command actually ran in those
