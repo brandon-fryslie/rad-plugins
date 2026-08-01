@@ -12,8 +12,8 @@ This repository contains Zsh plugins for the rad-shell framework. The rad-shell 
 # Run proj2 tests
 ./shell-tools/tests/proj2/run_tests.sh
 
-# Run ZUnit tests (requires zunit installed: brew install zunit)
-./run_tests.sh
+# Run rad-p10k command-footer smoke tests
+./rad-p10k/tests/run_footer_tests.zsh
 ```
 
 To test plugin changes interactively:
