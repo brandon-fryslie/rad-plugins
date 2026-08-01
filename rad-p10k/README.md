@@ -84,9 +84,9 @@ command name. The `❮` glyph is green on success, red on non-zero exit:
 
 ```
 <command output>
-╰─❮ 14:23:01 • 234ms • ~/code/cc-jstream • feature/branch • git ❯───...───
+╰─❮ 2:23:01 PM • 234ms • ~/code/cc-jstream • feature/branch • git ❯───...───
 
-╭─~/code/cc-jstream  feature/branch ───────...─── 14:23:01
+╭─~/code/cc-jstream  feature/branch ───────...─── 2:23:01 PM
 ╰─❯ next_command
 ```
 
@@ -98,8 +98,9 @@ only reflect the *previous* command's status.
 The arrow on the user-input line is intentionally neutral; status info
 lives in the footer where it can be correct.
 
-P10k's built-in transient prompt is disabled (`POWERLEVEL9K_TRANSIENT_PROMPT=off`)
-because the two mechanisms conflict.
+P10k's built-in transient prompt is enabled (`POWERLEVEL9K_TRANSIENT_PROMPT=same-dir`)
+and collapses prior prompts to a short form on Enter. It is independent
+of the footer, which is plain scrollback text printed from `precmd`.
 
 The footer is suppressed for the first prompt of a session and for
 empty-Enter on a blank input line (no command actually ran in those

@@ -4,8 +4,8 @@
 # completed command (exit status, duration). Visual shape per command
 # boundary, with the live (typing) prompt below:
 #
-#     ╰─❮ 14:23:01 • 234ms • ~/code/cc-jstream • feature/branch • git ❯──...─────
-#     ╭─~/code/cc-jstream  feature/branch ──────────...─── 14:23:01
+#     ╰─❮ 2:23:01 PM • 234ms • ~/code/cc-jstream • feature/branch • git ❯──...──
+#     ╭─~/code/cc-jstream  feature/branch ──────────...─── 2:23:01 PM
 #     ╰─❯ <cursor>
 #
 # The ❮ glyph is colored green on success and red on non-zero exit —
@@ -109,7 +109,10 @@ function _rad_p10k_footer_precmd() {
   for (( i = 1; i <= $#seg_texts; i++ )); do
     [[ -n ${seg_texts[i]} ]] || continue
     (( n++ )) && { footer_text+=" ${sep} "; footer_text_raw+=' • '; }
-    footer_text+="%F{${seg_colors[i]}}${seg_texts[i]}%f"
+    # % → %% so print -P shows branch/path/command text literally instead of
+    # re-expanding it as prompt escapes; the raw string keeps the unescaped
+    # text since %% renders as a single cell.
+    footer_text+="%F{${seg_colors[i]}}${seg_texts[i]//\%/%%}%f"
     footer_text_raw+=${seg_texts[i]}
   done
 
