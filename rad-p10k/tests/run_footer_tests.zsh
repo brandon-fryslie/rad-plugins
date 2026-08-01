@@ -8,9 +8,22 @@
 #
 # Run: rad-p10k/tests/run_footer_tests.zsh
 
-[[ -n ${RAD_FOOTER_TEST_REEXEC:-} ]] || exec env RAD_FOOTER_TEST_REEXEC=1 zsh -f "${(%):-%x}"
+# LC_ALL pinned to a UTF-8 locale: ${(m)#} falls back to byte counting under
+# C/POSIX, which would silently change every width assertion below.
+[[ -n ${RAD_FOOTER_TEST_REEXEC:-} ]] || exec env RAD_FOOTER_TEST_REEXEC=1 LC_ALL=en_US.UTF-8 zsh -f "${(%):-%x}"
 
 zmodload zsh/datetime
+
+# Loud precondition, not a graceful skip: if the pinned locale is unavailable,
+# ${(m)#} byte-counts and every width assertion becomes a red herring — probe
+# the exact property the suite depends on and fail with the real cause.
+typeset _wide=日
+if (( ${(m)#_wide} != 2 )); then
+  print -ru2 -- "FATAL: no usable UTF-8 locale (\${(m)#} is not counting display cells);"
+  print -ru2 -- "       the width assertions below require en_US.UTF-8 to be installed."
+  exit 1
+fi
+unset _wide
 
 typeset -g script_dir=${${(%):-%x}:A:h}
 source "${script_dir:h}/config/30-git-formatter.zsh"
@@ -43,8 +56,7 @@ function okm() {
 }
 
 # Renders one footer line in <dir> at width <columns>; REPLY = the line with
-# ANSI escapes stripped, so $#REPLY is its cell width (all glyphs used by the
-# footer are single-cell).
+# ANSI escapes stripped, so ${(m)#REPLY} is its display width in cells.
 function run_footer() {
   # extendedglob only here, for the ANSI-strip's # repetition glob — globally
   # it would turn ~ in the assertion patterns into the exclusion operator.
@@ -103,10 +115,23 @@ ok "fit_cwd: fully collapsed but still long -> …tail within budget" \
   "…d/n/dir" "$(_rad_p10k_fit_cwd "/usr/local/share/deep/nested/dir" 8)"
 ok "fit_cwd: floor at bare ellipsis" "…" "$(_rad_p10k_fit_cwd "~/anything" 1)"
 
+# Wide characters: budgets are display cells, and CJK/emoji occupy two cells
+# per character — char-counting math would pass these strings through untouched.
+ok "fit_cwd: CJK cwd within budget passes through" \
+  "~/日本語/プロジェクト" "$(_rad_p10k_fit_cwd "~/日本語/プロジェクト" 40)"
+ok "fit_cwd: CJK components collapse by cell width" \
+  "~/日/深い/プロジェクト" "$(_rad_p10k_fit_cwd "~/日本語/深い/プロジェクト" 22)"
+ok "fit_cwd: CJK …tail trimmed to cells, not chars" \
+  "…クトリ" "$(_rad_p10k_fit_cwd "/長い/パス/ディレクトリ" 8)"
+ok "fit_cwd: unsplittable 2-cell char lands one under budget" \
+  "…示" "$(_rad_p10k_fit_cwd "/日本語表示" 4)"
+ok "fit_cwd: emoji counts 2 cells" \
+  "…arty" "$(_rad_p10k_fit_cwd "~/🎉party" 5)"
+
 # ---- footer in a repo with a long branch -----------------------------------
 
 run_footer 120 "$repo"
-ok  "repo: footer is exactly COLUMNS cells" 120 $#REPLY
+ok  "repo: footer is exactly COLUMNS cells" 120 ${(m)#REPLY}
 okm "repo: truncated branch present" "*${trunc_branch}*" "$REPLY"
 okm "repo: full branch name absent" "^*${long_branch}*" "$REPLY"
 ok  "repo: five segments present" 4 "$(sep_count "$REPLY")"
@@ -117,7 +142,7 @@ git -C "$repo" checkout -q --detach
 sha=$(git -C "$repo" rev-parse --short HEAD)
 run_footer 120 "$repo"
 okm "detached: short sha shown" "* • ${sha} • *" "$REPLY"
-ok  "detached: footer is exactly COLUMNS cells" 120 $#REPLY
+ok  "detached: footer is exactly COLUMNS cells" 120 ${(m)#REPLY}
 git -C "$repo" checkout -q "$long_branch"
 
 # ---- outside a repo --------------------------------------------------------
@@ -126,7 +151,7 @@ plain=$work/plain
 mkdir -p "$plain"
 run_footer 120 "$plain"
 ok "non-repo: four segments (no branch)" 3 "$(sep_count "$REPLY")"
-ok "non-repo: footer is exactly COLUMNS cells" 120 $#REPLY
+ok "non-repo: footer is exactly COLUMNS cells" 120 ${(m)#REPLY}
 
 # ---- overflow: deep cwd at narrow COLUMNS ----------------------------------
 
@@ -139,7 +164,7 @@ git -C "$deep" init -q -b "$long_branch"
 git -C "$deep" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
 
 run_footer 80 "$deep"
-ok  "overflow tight: footer is exactly COLUMNS cells" 80 $#REPLY
+ok  "overflow tight: footer is exactly COLUMNS cells" 80 ${(m)#REPLY}
 ok  "overflow tight: all five segments still present" 4 "$(sep_count "$REPLY")"
 okm "overflow tight: branch survives the fit" "*${trunc_branch}*" "$REPLY"
 okm "overflow tight: command name survives the fit" "* gitstatusquery *" "$REPLY"
@@ -153,14 +178,32 @@ git -C "$mid" init -q -b "$long_branch"
 git -C "$mid" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
 
 run_footer 105 "$mid"
-ok  "overflow moderate: footer is exactly COLUMNS cells" 105 $#REPLY
+ok  "overflow moderate: footer is exactly COLUMNS cells" 105 ${(m)#REPLY}
 okm "overflow moderate: cwd collapsed to first-char components" \
   "*~/r/d/n/overflowing-directory*" "$REPLY"
 
 run_footer 300 "$deep"
 okm "generous width: full cwd verbatim" \
   "* ~/really/deep/nested/path/with/many/long-components/overflowing-directory *" "$REPLY"
-ok  "generous width: footer is exactly COLUMNS cells" 300 $#REPLY
+ok  "generous width: footer is exactly COLUMNS cells" 300 ${(m)#REPLY}
+
+# ---- CJK cwd: footer width math counts cells, not characters ---------------
+
+# "~/日本語/深いディレクトリ" is 13 characters but 25 cells; char-based math
+# under-measures by 12 and pads 12 dashes too many, wrapping the line.
+cjk=$work/日本語/深いディレクトリ
+mkdir -p "$cjk"
+git -C "$cjk" init -q -b "$long_branch"
+git -C "$cjk" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
+
+run_footer 200 "$cjk"
+okm "cjk generous: full cwd verbatim" "* ~/日本語/深いディレクトリ *" "$REPLY"
+ok  "cjk generous: footer is exactly COLUMNS cells" 200 ${(m)#REPLY}
+
+run_footer 80 "$cjk"
+ok  "cjk tight: footer is exactly COLUMNS cells" 80 ${(m)#REPLY}
+ok  "cjk tight: all five segments still present" 4 "$(sep_count "$REPLY")"
+okm "cjk tight: branch survives the fit" "*${trunc_branch}*" "$REPLY"
 
 # ---- my_git_formatter routes through the shared helper ---------------------
 
