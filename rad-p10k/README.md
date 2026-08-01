@@ -78,14 +78,15 @@ rad-p10k includes a custom `my_git_formatter` function that provides:
 
 ## Command Footer
 
-After each command, a two-line footer is printed before the next prompt:
+After each command, a footer line is printed before the next prompt,
+showing timestamp, duration, cwd, git branch (when in a repo), and the
+command name. The `❮` glyph is green on success, red on non-zero exit:
 
 ```
 <command output>
-─────────────────────────────────────────────────────────────────...─
-╰─❮ ✓ exit=0 • 234ms
+╰─❮ 14:23:01 • 234ms • ~/code/cc-jstream • feature/branch • git ❯───...───
 
-╭─~/code/cc-jstream  branch ───────...─── 14:23:01
+╭─~/code/cc-jstream  feature/branch ───────...─── 14:23:01
 ╰─❯ next_command
 ```
 
