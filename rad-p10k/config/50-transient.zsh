@@ -58,14 +58,24 @@ function _rad_p10k_fit_cwd() {
   local root=${cwd%%[^/]*}
   local -a parts=( ${(s:/:)cwd} )
   local -i i
-  for (( i = 1; i < $#parts && $#cwd > budget; i++ )); do
+  # ${(m)#} measures display cells, not characters — CJK and emoji occupy two
+  # cells each, and the budget is denominated in cells.
+  for (( i = 1; i < $#parts && ${(m)#cwd} > budget; i++ )); do
     parts[i]=${parts[i][1]}
     cwd="${root}${(j:/:)parts}"
   done
-  if (( $#cwd > budget )); then
+  if (( ${(m)#cwd} > budget )); then
     local -i keep=$(( budget - 1 ))
     (( keep < 0 )) && keep=0
-    cwd="…${cwd[$#cwd - keep + 1, -1]}"
+    # Widest suffix that fits `keep` cells: walk once from the left,
+    # subtracting each dropped character's width from the running total —
+    # ${(m)#} is additive over code points, so the total stays exact. A
+    # 2-cell character straddling the cut can't be split, so the suffix may
+    # land one cell under — dash_count, measured from the final assembled
+    # line, absorbs the difference.
+    local -i w=${(m)#cwd} j=1
+    while (( w > keep )); do w=$(( w - ${(m)#cwd[j]} )); (( j++ )); done
+    cwd="…${cwd[j,-1]}"
   fi
   print -r -- "$cwd"
 }
@@ -162,13 +172,16 @@ function _rad_p10k_footer_precmd() {
   # Measure with the full cwd, then fit the cwd — the one unbounded segment —
   # to the overflow and assemble again. When everything already fits, the fit
   # is the identity and the second assembly reproduces the first byte-for-byte.
+  # [LAW:one-source-of-truth] every width here is ${(m)#} display cells — the
+  # unit COLUMNS is denominated in; $# counts characters and undercounts CJK
+  # and emoji by one cell each, so mixing the two units would wrap the line.
   local footer_text footer_text_raw
   _rad_p10k_footer_assemble
-  local -i overflow=$(( $#footer_text_raw + prefix_cells + sep_cells - COLUMNS ))
-  seg_texts[cwd_i]=$(_rad_p10k_fit_cwd "${seg_texts[cwd_i]}" $(( $#seg_texts[cwd_i] - overflow )))
+  local -i overflow=$(( ${(m)#footer_text_raw} + prefix_cells + sep_cells - COLUMNS ))
+  seg_texts[cwd_i]=$(_rad_p10k_fit_cwd "${seg_texts[cwd_i]}" $(( ${(m)#seg_texts[cwd_i]} - overflow )))
   _rad_p10k_footer_assemble
 
-  local -i dash_count=$(( COLUMNS - prefix_cells - $#footer_text_raw - sep_cells ))
+  local -i dash_count=$(( COLUMNS - prefix_cells - ${(m)#footer_text_raw} - sep_cells ))
   (( dash_count < 0 )) && dash_count=0
   local _empty=
   local dashes=${(l:dash_count::─:)_empty}
