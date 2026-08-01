@@ -81,7 +81,11 @@ rad-p10k includes a custom `my_git_formatter` function that provides:
 After each command, a footer line is printed before the next prompt,
 showing timestamp, duration, cwd, git branch (when in a repo), and the
 command name. Long branch names truncate to `first-12…last-12`, the same
-rule as the prompt's branch segment. The `❮` glyph is green on success,
+rule as the prompt's branch segment. When the assembled line would exceed
+the terminal width, the cwd shrinks to fit — leading path components
+collapse to their first letter (like p10k's own dir truncation), falling
+back to an `…`-prefixed tail — so the footer always stays on one line
+with every segment present. The `❮` glyph is green on success,
 red on non-zero exit:
 
 ```
