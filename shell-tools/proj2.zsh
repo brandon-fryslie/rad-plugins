@@ -1,6 +1,12 @@
 # proj2z (p2z) - cd to a project directory using fzf
 # Supports multiple project directories via PROJECTS_DIRS (array)
 # or single directory via PROJECTS_DIR (backward compatibility)
+#
+# Navigating to a project also brings up `claude remote-control --spawn worktree`
+# for it, as a detached window in one shared tmux session (PROJ2Z_RC_SESSION,
+# default "remote-control") so it never occupies a terminal. p2rc goes there to
+# read a server's log or restart it. A project must have been trusted by running
+# `claude` in it once, or its server sits on the trust prompt in its window.
 
 # Get the directory where this script is located
 typeset -g _PROJ2Z_SCRIPT_DIR="${${(%):-%x}:A:h}"
@@ -119,6 +125,110 @@ _proj2z_git_status() {
   fi
 }
 
+# Name of the one tmux session that hosts every `claude remote-control` server.
+# [LAW:one-source-of-truth] Read at call time (never assigned at load) so the value
+# a caller or a test exports is the only name in play, with no load-order coupling.
+_proj2z_rc_session_name() {
+  echo "${PROJ2Z_RC_SESSION:-remote-control}"
+}
+
+# Whether this project's remote-control server is absent, dead, or alive.
+# A window whose server died still exists, so matching on the window name alone
+# would read a crashed server as a running one and never bring it back.
+_proj2z_rc_state() {
+  local rc_session="$1"
+  local window_name="$2"
+
+  local -a rows
+  # A missing session makes this fail, which is the same answer as no window.
+  rows=(${(f)"$(tmux list-windows -t "=${rc_session}" -F '#{pane_dead}	#{window_name}' 2>/dev/null)"}) \
+    || { print -r -- absent; return 0 }
+
+  # Matched in zsh rather than through a tmux -f filter, so a project name
+  # containing tmux format characters cannot change what gets matched.
+  local row
+  for row in "${rows[@]}"; do
+    [[ "${row#*$'\t'}" == "$window_name" ]] || continue
+    [[ "${row%%$'\t'*}" == 1 ]] && { print -r -- dead; return 0 }
+    print -r -- alive
+    return 0
+  done
+
+  print -r -- absent
+}
+
+# Bring up this project's `claude remote-control` server if it is not already
+# running, as a detached window in the shared remote-control session. Converges:
+# calling it on every navigation is a no-op once the server is up, and revives it
+# if it died. Assumes tmux - its one caller checks that first.
+_proj2z_ensure_remote_control() {
+  local project_path="$1"
+  local rc_session="$(_proj2z_rc_session_name)"
+  local window_name="${project_path:t}"
+
+  if ! command -v claude &> /dev/null; then
+    echo "Warning: claude is not installed; no remote-control session for $window_name" >&2
+    return 0
+  fi
+
+  case "$(_proj2z_rc_state "$rc_session" "$window_name")" in
+    alive)
+      return 0
+      ;;
+    dead)
+      # Clear the corpse remain-on-exit left behind so the window can be remade.
+      tmux kill-window -t "=${rc_session}:=${window_name}" || {
+        echo "Error: could not clear dead remote-control window: $window_name" >&2
+        return 1
+      }
+      ;;
+  esac
+
+  if ! tmux has-session -t "=${rc_session}" 2>/dev/null; then
+    tmux new-session -d -s "$rc_session" -c "$HOME" -n "shell" || {
+      echo "Error: could not create tmux session: $rc_session" >&2
+      return 1
+    }
+  fi
+
+  # tmux hands the command to a shell, so the name is quoted for that shell
+  # rather than passed as argv - project names may contain spaces.
+  local rc_command="claude remote-control --spawn worktree --name ${(q)window_name}"
+
+  tmux new-window -d -t "=${rc_session}" -c "$project_path" -n "$window_name" "$rc_command" || {
+    echo "Error: could not start remote control for: $project_path" >&2
+    return 1
+  }
+
+  # [LAW:no-silent-failure] A server that dies on startup (untrusted workspace, an
+  # inference-only token) leaves its error on screen instead of closing the window.
+  tmux set-option -w -t "=${rc_session}:=${window_name}" remain-on-exit on \
+    || echo "Warning: could not set remain-on-exit on ${rc_session}:${window_name}" >&2
+
+  echo "Remote control: ${rc_session}:${window_name} (p2rc to inspect)"
+}
+
+# Go to the shared remote-control session to inspect, restart, or kill servers.
+proj2z_remote_control() {
+  local rc_session="$(_proj2z_rc_session_name)"
+
+  if ! command -v tmux &> /dev/null; then
+    echo "Error: tmux is not installed." >&2
+    return 1
+  fi
+
+  if ! tmux has-session -t "=${rc_session}" 2>/dev/null; then
+    echo "No remote-control session yet - p2z into a project to start one." >&2
+    return 1
+  fi
+
+  if [[ -n "$TMUX" ]]; then
+    tmux switch-client -t "=${rc_session}"
+  else
+    tmux attach-session -t "=${rc_session}"
+  fi
+}
+
 # Create or attach to tmux session for project
 _proj2z_screen_session() {
   local project_path="$1"
@@ -140,6 +250,11 @@ _proj2z_screen_session() {
   # Determine if we're already inside a tmux session
   local inside_tmux=0
   [[ -n "$TMUX" ]] && inside_tmux=1
+
+  # Before the attach below, which blocks until detach when we start outside tmux.
+  # [LAW:no-ambient-temporal-coupling] Ordering is the point, not an accident of
+  # where the line landed. Unconditional: it converges rather than toggling.
+  _proj2z_ensure_remote_control "$project_path"
 
   # Helper to attach/switch to session (uses switch-client if inside tmux)
   _proj2z_goto_session() {
@@ -639,3 +754,6 @@ function proj2z {
 
 # Create alias 'p2z' for quick access
 alias p2z='proj2z'
+
+# Create alias 'p2rc' to reach the session hosting the remote-control servers
+alias p2rc='proj2z_remote_control'
