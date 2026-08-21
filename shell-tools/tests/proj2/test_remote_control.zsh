@@ -4,9 +4,11 @@
 #
 # Hermetic: runs against a private tmux server in a temp TMUX_TMPDIR with a
 # stand-in `claude` on PATH, so it never touches the real tmux server, the
-# network, or the user's Claude account. What each window is *told* to run is
-# asserted through #{pane_start_command} rather than by intercepting the binary,
-# because tmux opens windows through a login shell that rebuilds PATH.
+# network, or the user's Claude account. The server is started with a config of
+# this suite's own, pinning `default-shell` to /bin/sh - tmux hands every pane to
+# a shell, and the developer's shell would source their dotfiles and rebuild PATH
+# out from under the stand-in. What each window is *told* to run is asserted
+# through #{pane_start_command} rather than by intercepting the binary.
 
 set -uo pipefail
 
@@ -66,6 +68,15 @@ mkdir -p "$WORK/bin"
 printf '#!/bin/sh\nsleep 300\n' > "$WORK/bin/claude"
 chmod +x "$WORK/bin/claude"
 export PATH="$WORK/bin:$PATH"
+
+# Start the private server here, before anything else reaches for tmux, so every
+# window it ever opens inherits a shell that reads no dotfiles and leaves the
+# exported PATH above intact. Passing -f also keeps ~/.tmux.conf out of the run.
+printf 'set -g default-shell /bin/sh\n' > "$WORK/tmux.conf"
+tmux -f "$WORK/tmux.conf" new-session -d -s "p2z-boot-$$" -c "$WORK" 'sleep 3000' || {
+  print -r -- "${RED}✗ could not start the private tmux server${NC}"
+  exit 1
+}
 
 rc_windows() {
   tmux list-windows -t "=${PROJ2Z_RC_SESSION}" -F '#{window_name}' 2>/dev/null | sort | tr '\n' ','
@@ -143,16 +154,45 @@ _proj2z_ensure_remote_control "$WORK/projects/other" > /dev/null
 check "both projects hosted side by side" "my project,other,shell," "$(rc_windows)"
 
 print -r -- ""
-print -r -- "${YELLOW}TEST 5: a missing claude warns without failing navigation${NC}"
+print -r -- "${YELLOW}TEST 5: identity is the project path, not the window name${NC}"
 
-tmux_dir="${$(command -v tmux):h}"
-missing_out=$(PATH="${tmux_dir}:/usr/bin:/bin" \
+# The collision a name-keyed lookup got wrong: one basename, two projects.
+mkdir -p "$WORK/a/twin" "$WORK/b/twin"
+_proj2z_ensure_remote_control "$WORK/a/twin" > /dev/null
+twin_out=$(_proj2z_ensure_remote_control "$WORK/b/twin")
+contains "the second twin still brings up its own server" \
+  "Remote control: ${PROJ2Z_RC_SESSION}:twin" "$twin_out"
+check "each twin holds a window" "2" \
+  "$(tmux list-windows -t "=${PROJ2Z_RC_SESSION}" -F '#{window_name}' | grep -c '^twin$')"
+check "each window carries the project it serves" "$WORK/a/twin,$WORK/b/twin," \
+  "$(tmux list-windows -t "=${PROJ2Z_RC_SESSION}" -F '#{@proj2z_project}' \
+     -f '#{==:#{window_name},twin}' | sort | tr '\n' ',')"
+check "both twins are running" "0,0," \
+  "$(tmux list-windows -t "=${PROJ2Z_RC_SESSION}" -F '#{pane_dead}' \
+     -f '#{==:#{window_name},twin}' | tr '\n' ',')"
+
+# The maintenance window is named `shell` and carries no stamp, so a project of
+# the same name matches nothing and is served on its own terms.
+mkdir -p "$WORK/projects/shell"
+shell_out=$(_proj2z_ensure_remote_control "$WORK/projects/shell")
+contains "a project named after the maintenance window gets a server" \
+  "Remote control: ${PROJ2Z_RC_SESSION}:shell" "$shell_out"
+check "the maintenance window was left where it was" "2" \
+  "$(tmux list-windows -t "=${PROJ2Z_RC_SESSION}" -F '#{window_name}' | grep -c '^shell$')"
+
+print -r -- ""
+print -r -- "${YELLOW}TEST 6: a missing claude warns without failing navigation${NC}"
+
+# Empty by construction: the missing-claude branch returns before any tmux call,
+# so borrowing tmux's bin directory only risked finding a real `claude` beside it.
+mkdir -p "$WORK/empty"
+missing_out=$(PATH="$WORK/empty" \
   _proj2z_ensure_remote_control "$WORK/projects/other" 2>&1)
 check "does not fail - p2z still navigates" "0" "$?"
 contains "names the cause" "claude is not installed" "$missing_out"
 
 print -r -- ""
-print -r -- "${YELLOW}TEST 6: p2rc fails loudly with no session${NC}"
+print -r -- "${YELLOW}TEST 7: p2rc fails loudly with no session${NC}"
 
 absent_out=$(PROJ2Z_RC_SESSION="p2z-absent-$$" proj2z_remote_control 2>&1)
 check "fails nonzero" "1" "$?"
