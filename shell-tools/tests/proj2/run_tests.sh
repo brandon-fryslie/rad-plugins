@@ -87,18 +87,25 @@ if [[ $RUN_SHELL_TESTS == true ]]; then
     echo -e "${BLUE}Running legacy shell tests...${NC}"
     echo ""
 
-    # Run the existing shell test
-    if [[ -f "${SCRIPT_DIR}/test_preview_args.sh" ]]; then
-        chmod +x "${SCRIPT_DIR}/test_preview_args.sh"
-        if "${SCRIPT_DIR}/test_preview_args.sh"; then
-            echo -e "${GREEN}✓ Shell tests passed!${NC}"
+    # Every test_*.sh / test_*.zsh in this directory is a shell test, so adding
+    # one is a new file rather than another branch in this runner.
+    shell_tests=("${SCRIPT_DIR}"/test_*.sh(N) "${SCRIPT_DIR}"/test_*.zsh(N))
+
+    if (( ${#shell_tests} == 0 )); then
+        echo -e "${YELLOW}⚠ Warning: no shell tests found in ${SCRIPT_DIR}${NC}"
+    fi
+
+    for shell_test in "${shell_tests[@]}"; do
+        echo -e "${BLUE}→ ${shell_test:t}${NC}"
+        chmod +x "$shell_test"
+        if "$shell_test"; then
+            echo -e "${GREEN}✓ ${shell_test:t} passed!${NC}"
         else
-            echo -e "${RED}✗ Shell tests failed!${NC}"
+            echo -e "${RED}✗ ${shell_test:t} failed!${NC}"
             EXIT_CODE=1
         fi
-    else
-        echo -e "${YELLOW}⚠ Warning: test_preview_args.sh not found${NC}"
-    fi
+        echo ""
+    done
 
     echo ""
     echo "----------------------------------------"
