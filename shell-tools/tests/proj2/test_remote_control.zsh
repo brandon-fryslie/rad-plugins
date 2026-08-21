@@ -64,8 +64,15 @@ if ! command -v tmux &> /dev/null; then
   exit 0
 fi
 
+# The stand-in records the argv it was handed and then idles like a real server.
+# It writes into its own cwd, which makes the record per-project for free: tmux
+# starts each pane in the project directory.
 mkdir -p "$WORK/bin"
-printf '#!/bin/sh\nsleep 300\n' > "$WORK/bin/claude"
+cat > "$WORK/bin/claude" <<'STANDIN'
+#!/bin/sh
+printf '%s\n' "$@" > "$(pwd)/.claude-argv"
+sleep 300
+STANDIN
 chmod +x "$WORK/bin/claude"
 export PATH="$WORK/bin:$PATH"
 
@@ -82,6 +89,28 @@ rc_windows() {
   tmux list-windows -t "=${PROJ2Z_RC_SESSION}" -F '#{window_name}' 2>/dev/null | sort | tr '\n' ','
 }
 
+# Build an rc_windows expectation from window names, so the maintenance window is
+# named once - by proj2.zsh - and this suite never spells it out a second time.
+rc_expect() {  # rc_expect <window name>...
+  print -rl -- "$@" | sort | tr '\n' ','
+}
+
+# What the stand-in was actually handed. The pane starts asynchronously, so wait
+# for the record rather than assuming it is already there.
+argv_of() {  # argv_of <project dir>
+  local log="$1/.claude-argv"
+  for _ in {1..50}; do
+    [[ -s "$log" ]] && break
+    sleep 0.1
+  done
+  tr '\n' '|' < "$log"
+}
+
+# Panes carrying the identity stamp, read through the name proj2.zsh gives it.
+rc_stamps() {  # rc_stamps [<extra list-panes args>...]
+  tmux list-panes -s -t "=${PROJ2Z_RC_SESSION}" -F "#{${_PROJ2Z_RC_STAMP}}" "$@"
+}
+
 # A project name containing a space, since proj2z permits those.
 PROJECT="$WORK/projects/my project"
 mkdir -p "$PROJECT"
@@ -96,7 +125,7 @@ check "names where the server landed" \
   "Remote control: ${PROJ2Z_RC_SESSION}:my project (p2rc to inspect)" "$out"
 
 check "holds a maintenance shell alongside the project window" \
-  "my project,shell," "$(rc_windows)"
+  "$(rc_expect 'my project' "$_PROJ2Z_RC_HOME_WINDOW")" "$(rc_windows)"
 
 attached=$(tmux list-sessions -F '#{session_attached}' \
   -f "#{==:#{session_name},${PROJ2Z_RC_SESSION}}")
@@ -106,13 +135,11 @@ pane=$(tmux list-windows -t "=${PROJ2Z_RC_SESSION}" \
   -F '#{pane_dead}|#{pane_current_path}' -f '#{==:#{window_name},my project}')
 check "the window is alive and in the project directory" "0|${PROJECT:A}" "$pane"
 
-start_cmd=$(tmux list-windows -t "=${PROJ2Z_RC_SESSION}" \
-  -F '#{pane_start_command}' -f '#{==:#{window_name},my project}')
-check "runs the worktree spawn config with the name shell-quoted" \
-  '"claude remote-control --spawn worktree --name my\\ project"' "$start_cmd"
+check "hands the server the worktree spawn config, project name as one argument" \
+  "remote-control|--spawn|worktree|--name|my project|" "$(argv_of "$PROJECT")"
 
-remain=$(tmux show-options -w -v -t "=${PROJ2Z_RC_SESSION}:=my project" remain-on-exit)
-check "window outlives a dying server so its error stays readable" "on" "$remain"
+remain=$(tmux show-options -p -v -t "=${PROJ2Z_RC_SESSION}:=my project" remain-on-exit)
+check "the pane outlives a dying server so its error stays readable" "on" "$remain"
 
 print -r -- ""
 print -r -- "${YELLOW}TEST 2: converges - a running server is left alone, silently${NC}"
@@ -144,14 +171,15 @@ check "the revived window is alive" "0" \
   "$(tmux list-windows -t "=${PROJ2Z_RC_SESSION}" -F '#{pane_dead}' \
      -f '#{==:#{window_name},my project}')"
 check "revival replaced the window rather than adding one" \
-  "my project,shell," "$(rc_windows)"
+  "$(rc_expect 'my project' "$_PROJ2Z_RC_HOME_WINDOW")" "$(rc_windows)"
 
 print -r -- ""
 print -r -- "${YELLOW}TEST 4: a second project gets its own window in the same session${NC}"
 
 mkdir -p "$WORK/projects/other"
 _proj2z_ensure_remote_control "$WORK/projects/other" > /dev/null
-check "both projects hosted side by side" "my project,other,shell," "$(rc_windows)"
+check "both projects hosted side by side" \
+  "$(rc_expect 'my project' other "$_PROJ2Z_RC_HOME_WINDOW")" "$(rc_windows)"
 
 print -r -- ""
 print -r -- "${YELLOW}TEST 5: identity is the project path, not the window name${NC}"
@@ -164,11 +192,10 @@ contains "the second twin still brings up its own server" \
   "Remote control: ${PROJ2Z_RC_SESSION}:twin" "$twin_out"
 check "each twin holds a window" "2" \
   "$(tmux list-windows -t "=${PROJ2Z_RC_SESSION}" -F '#{window_name}' | grep -c '^twin$')"
-check "each window carries the project it serves" "$WORK/a/twin,$WORK/b/twin," \
-  "$(tmux list-windows -t "=${PROJ2Z_RC_SESSION}" -F '#{@proj2z_project}' \
-     -f '#{==:#{window_name},twin}' | sort | tr '\n' ',')"
+check "each pane carries the project it serves" "$WORK/a/twin,$WORK/b/twin," \
+  "$(rc_stamps -f '#{==:#{window_name},twin}' | sort | tr '\n' ',')"
 check "both twins are running" "0,0," \
-  "$(tmux list-windows -t "=${PROJ2Z_RC_SESSION}" -F '#{pane_dead}' \
+  "$(tmux list-panes -s -t "=${PROJ2Z_RC_SESSION}" -F '#{pane_dead}' \
      -f '#{==:#{window_name},twin}' | tr '\n' ',')"
 
 # The maintenance window is named `shell` and carries no stamp, so a project of
@@ -197,6 +224,43 @@ print -r -- "${YELLOW}TEST 7: p2rc fails loudly with no session${NC}"
 absent_out=$(PROJ2Z_RC_SESSION="p2z-absent-$$" proj2z_remote_control 2>&1)
 check "fails nonzero" "1" "$?"
 contains "says how to start one" "p2z into a project" "$absent_out"
+
+print -r -- ""
+print -r -- "${YELLOW}TEST 8: a human's own pane never answers for the server${NC}"
+
+# p2rc invites the user into this session, so they may split a project window.
+# Liveness has to follow the stamped server pane, not whichever pane is active -
+# reading the window instead reports a crashed server as running, forever.
+OTHER="$WORK/projects/other"
+split_pane=$(tmux split-window -d -P -F '#{pane_id}' \
+  -t "=${PROJ2Z_RC_SESSION}:=other" -c "$WORK" 'sleep 300')
+tmux select-pane -t "$split_pane"
+server_pane=$(tmux list-panes -s -t "=${PROJ2Z_RC_SESSION}" -F '#{pane_id}' \
+  -f "#{==:#{${_PROJ2Z_RC_STAMP}},${OTHER}}")
+tmux send-keys -t "$server_pane" C-c
+for _ in {1..50}; do
+  [[ "$(tmux display-message -p -t "$server_pane" '#{pane_dead}')" == 1 ]] && break
+  sleep 0.1
+done
+check "the server died while the user's pane stayed active" "1|1" \
+  "$(tmux display-message -p -t "$server_pane" '#{pane_dead}')|$(tmux display-message -p -t "$split_pane" '#{pane_active}')"
+revive_out=$(_proj2z_ensure_remote_control "$OTHER")
+contains "the crash is still seen, and the server revived" \
+  "Remote control: ${PROJ2Z_RC_SESSION}:other" "$revive_out"
+check "the revived server pane is running" "0" \
+  "$(tmux display-message -p -t "$server_pane" '#{pane_dead}')"
+check "the user's own pane was left alone" "0" \
+  "$(tmux display-message -p -t "$split_pane" '#{pane_dead}')"
+
+print -r -- ""
+print -r -- "${YELLOW}TEST 9: the remote-control session sits outside the project namespace${NC}"
+
+# What keeps a project called `remote-control` from being redirected into the
+# shared session, or having a server injected into its own: no name a project may
+# legally carry can equal the session's name.
+default_rc=$(PROJ2Z_RC_SESSION= _proj2z_rc_session_name)
+_proj2z_validate_project_name "$default_rc" 2>/dev/null
+check "no legal project name can equal the default RC session" "1" "$?"
 
 print -r -- ""
 print -r -- "========================================="
