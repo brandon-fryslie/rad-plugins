@@ -132,29 +132,40 @@ _proj2z_rc_session_name() {
   echo "${PROJ2Z_RC_SESSION:-remote-control}"
 }
 
-# Whether this project's remote-control server is absent, dead, or alive.
-# A window whose server died still exists, so matching on the window name alone
-# would read a crashed server as a running one and never bring it back.
+# The tmux window option every remote-control window carries: the full path of the
+# project its server serves. [LAW:one-source-of-truth] This stamp is the identity;
+# the window name is only a label. A basename cannot serve as identity here - two
+# projects in different PROJECTS_DIRS routinely share one, and the session's own
+# maintenance window answers to a name as readily as a project window does.
+typeset -g _PROJ2Z_RC_STAMP='@proj2z_project'
+
+# This project's remote-control window: whether it is absent, dead, or alive, and
+# which window it is. Always prints "<state>\t<window_id>"; absent carries no id.
+# A window whose server died still exists, so reporting mere presence would read a
+# crashed server as a running one and never bring it back.
 _proj2z_rc_state() {
   local rc_session="$1"
-  local window_name="$2"
+  local project_path="$2"
 
   local -a rows
+  local fmt="#{pane_dead}"$'\t'"#{window_id}"$'\t'"#{${_PROJ2Z_RC_STAMP}}"
   # A missing session makes this fail, which is the same answer as no window.
-  rows=(${(f)"$(tmux list-windows -t "=${rc_session}" -F '#{pane_dead}	#{window_name}' 2>/dev/null)"}) \
-    || { print -r -- absent; return 0 }
+  rows=(${(f)"$(tmux list-windows -t "=${rc_session}" -F "$fmt" 2>/dev/null)"}) \
+    || { print -r -- $'absent\t'; return 0 }
 
-  # Matched in zsh rather than through a tmux -f filter, so a project name
+  # Matched in zsh rather than through a tmux -f filter, so a project path
   # containing tmux format characters cannot change what gets matched.
-  local row
+  local row window_id
   for row in "${rows[@]}"; do
-    [[ "${row#*$'\t'}" == "$window_name" ]] || continue
-    [[ "${row%%$'\t'*}" == 1 ]] && { print -r -- dead; return 0 }
-    print -r -- alive
+    # The maintenance window carries no stamp, so it matches no project.
+    [[ "${row#*$'\t'*$'\t'}" == "$project_path" ]] || continue
+    window_id="${${row#*$'\t'}%%$'\t'*}"
+    [[ "${row%%$'\t'*}" == 1 ]] && { print -r -- $'dead\t'"$window_id"; return 0 }
+    print -r -- $'alive\t'"$window_id"
     return 0
   done
 
-  print -r -- absent
+  print -r -- $'absent\t'
 }
 
 # Bring up this project's `claude remote-control` server if it is not already
@@ -171,18 +182,11 @@ _proj2z_ensure_remote_control() {
     return 0
   fi
 
-  case "$(_proj2z_rc_state "$rc_session" "$window_name")" in
-    alive)
-      return 0
-      ;;
-    dead)
-      # Clear the corpse remain-on-exit left behind so the window can be remade.
-      tmux kill-window -t "=${rc_session}:=${window_name}" || {
-        echo "Error: could not clear dead remote-control window: $window_name" >&2
-        return 1
-      }
-      ;;
-  esac
+  local rc_reply="$(_proj2z_rc_state "$rc_session" "$project_path")"
+  local rc_state="${rc_reply%%$'\t'*}"
+  local window_id="${rc_reply#*$'\t'}"
+
+  [[ "$rc_state" == alive ]] && return 0
 
   if ! tmux has-session -t "=${rc_session}" 2>/dev/null; then
     tmux new-session -d -s "$rc_session" -c "$HOME" -n "shell" || {
@@ -191,19 +195,40 @@ _proj2z_ensure_remote_control() {
     }
   fi
 
+  # A window born running the server can die before `remain-on-exit` reaches it,
+  # taking the startup error with it. [LAW:no-ambient-temporal-coupling] Open it
+  # empty - nothing to exit - configure it while it is provably stable, and only
+  # then respawn it into the server, with the option already in force.
+  if [[ "$rc_state" == absent ]]; then
+    window_id="$(tmux new-window -d -P -F '#{window_id}' \
+      -t "=${rc_session}" -c "$project_path" -n "$window_name")" || {
+      echo "Error: could not open remote-control window for: $project_path" >&2
+      return 1
+    }
+
+    tmux set-option -w -t "$window_id" "$_PROJ2Z_RC_STAMP" "$project_path" || {
+      echo "Error: could not record the project on window: $window_id" >&2
+      return 1
+    }
+
+    # [LAW:no-silent-failure] A server that dies on startup (untrusted workspace, an
+    # inference-only token) leaves its error on screen instead of closing the window.
+    tmux set-option -w -t "$window_id" remain-on-exit on || {
+      echo "Error: could not set remain-on-exit on window: $window_id" >&2
+      return 1
+    }
+  fi
+
   # tmux hands the command to a shell, so the name is quoted for that shell
   # rather than passed as argv - project names may contain spaces.
   local rc_command="claude remote-control --spawn worktree --name ${(q)window_name}"
 
-  tmux new-window -d -t "=${rc_session}" -c "$project_path" -n "$window_name" "$rc_command" || {
+  # [LAW:dataflow-not-control-flow] The one operation a missing server and a dead one
+  # both arrive at: a configured window, respawned into the server it should run.
+  tmux respawn-pane -k -t "$window_id" "$rc_command" || {
     echo "Error: could not start remote control for: $project_path" >&2
     return 1
   }
-
-  # [LAW:no-silent-failure] A server that dies on startup (untrusted workspace, an
-  # inference-only token) leaves its error on screen instead of closing the window.
-  tmux set-option -w -t "=${rc_session}:=${window_name}" remain-on-exit on \
-    || echo "Warning: could not set remain-on-exit on ${rc_session}:${window_name}" >&2
 
   echo "Remote control: ${rc_session}:${window_name} (p2rc to inspect)"
 }
