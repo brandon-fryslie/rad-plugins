@@ -1,7 +1,3 @@
-happy() {
-   HAPPY_SERVER_URL=https://happy-server.sanctuary.gdn HAPPY_HOME_DIR=~/.happy-homelab command happy "$@"
-}
-
 # Ensure this runs in a subshell - note the parens rather than curly braces
 claad () (
     export SHELL=bash
