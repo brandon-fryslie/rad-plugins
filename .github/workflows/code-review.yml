@@ -55,8 +55,9 @@ jobs:
       # DEEPSEEK_API_KEY, and a tag can be moved under it without any diff landing
       # in this repo. The SHA is chosen in install.sh, which owns this file.
       - name: Code Review
-        uses: promptctl/copirate-code-review-agent@8db55e0080fc3432f768f09fa410a0f5d22b26c4
+        uses: promptctl/copirate-code-review-agent@04083de7e05373424167fcae73030c9539b07668
         with:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           # DEPENDENCY_DIFF is on for EVERY repo this installs into — a deliberate
           # universal default baked into the template, NOT a per-repo divergence that
