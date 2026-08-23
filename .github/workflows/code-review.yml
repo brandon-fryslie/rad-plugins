@@ -55,7 +55,7 @@ jobs:
       # DEEPSEEK_API_KEY, and a tag can be moved under it without any diff landing
       # in this repo. The SHA is chosen in install.sh, which owns this file.
       - name: Code Review
-        uses: promptctl/copirate-code-review-agent@04083de7e05373424167fcae73030c9539b07668
+        uses: promptctl/copirate-code-review-agent@669c4ea7b3b2a4d7c3bc88a96c73a42302ebe046
         with:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
