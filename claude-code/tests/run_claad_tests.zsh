@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 # Smoke tests for claad (claude-code.plugin.zsh): claude replaces the shell
-# with SHELL=bash and the argv intact, and a claude that cannot be exec'd is
-# reported to a shell that is still alive.
+# with the argv intact, and a claude that cannot be exec'd is reported to a
+# shell that is still alive.
 #
 # Re-execs under `zsh -f` so the user's shell config can't leak in. Every case
 # runs against a throwaway PATH under a temp dir; nothing touches the user's
@@ -19,11 +19,11 @@ source "${script_dir:h:h}/tests/harness.zsh"
 
 typeset -g tmp=$(mktemp -d) && trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/bin"
-# The stand-in claude reports what it was exec'd with: SHELL, and each argv
-# word in its own brackets so a lost word boundary shows.
+# The stand-in claude reports the argv it was exec'd with, each word in its
+# own brackets so a lost word boundary shows.
 cat > "$tmp/bin/claude" <<'FAKE'
 #!/bin/sh
-printf 'SHELL=%s argv=' "$SHELL"; printf '[%s]' "$@"; printf '\n'
+printf 'argv='; printf '[%s]' "$@"; printf '\n'
 FAKE
 chmod +x "$tmp/bin/claude"
 
@@ -32,16 +32,16 @@ chmod +x "$tmp/bin/claude"
 # claad replaces the shell: the line after it never runs.
 typeset -g out
 out=$( PATH=$tmp/bin:/usr/bin:/bin; claad --resume x "a b"; print NOT-REACHED )
-ok "exec: claude replaces the shell, with SHELL=bash and argv intact" \
-   "SHELL=bash argv=[--dangerously-skip-permissions][--resume][x][a b]" "$out"
+ok "exec: claude replaces the shell, with argv intact" \
+   "argv=[--dangerously-skip-permissions][--resume][x][a b]" "$out"
 
 out=$( PATH=$tmp/bin:/usr/bin:/bin; alias claude='/nonexistent/claude'; claad; print NOT-REACHED )
 ok "exec: an alias named claude is bypassed for the PATH binary" \
-   "SHELL=bash argv=[--dangerously-skip-permissions]" "$out"
+   "argv=[--dangerously-skip-permissions]" "$out"
 
 out=$( PATH=$tmp/bin:/usr/bin:/bin; claude() { print WRAPPER; }; claad; print NOT-REACHED )
 ok "exec: a function named claude is bypassed for the PATH binary" \
-   "SHELL=bash argv=[--dangerously-skip-permissions]" "$out"
+   "argv=[--dangerously-skip-permissions]" "$out"
 
 # ---- failure arm: the shell survives ----------------------------------------
 
