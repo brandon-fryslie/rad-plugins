@@ -18,7 +18,7 @@ source "${script_dir:h}/claude-code.plugin.zsh"
 source "${script_dir:h:h}/tests/harness.zsh"
 
 typeset -g tmp=$(mktemp -d) && trap 'rm -rf "$tmp"' EXIT
-mkdir -p "$tmp/bin"
+mkdir -p "$tmp/bin" "$tmp/empty"
 # The stand-in claude reports the argv it was exec'd with, each word in its
 # own brackets so a lost word boundary shows.
 cat > "$tmp/bin/claude" <<'FAKE'
@@ -32,30 +32,30 @@ chmod +x "$tmp/bin/claude"
 # claad replaces the shell: the line after it never runs.
 typeset -g out
 out=$( PATH=$tmp/bin:/usr/bin:/bin; claad --resume x "a b"; print NOT-REACHED )
-ok "exec: claude replaces the shell, with argv intact" \
+rad-ok "exec: claude replaces the shell, with argv intact" \
    "argv=[--dangerously-skip-permissions][--resume][x][a b]" "$out"
 
 out=$( PATH=$tmp/bin:/usr/bin:/bin; alias claude='/nonexistent/claude'; claad; print NOT-REACHED )
-ok "exec: an alias named claude is bypassed for the PATH binary" \
+rad-ok "exec: an alias named claude is bypassed for the PATH binary" \
    "argv=[--dangerously-skip-permissions]" "$out"
 
 out=$( PATH=$tmp/bin:/usr/bin:/bin; claude() { print WRAPPER; }; claad; print NOT-REACHED )
-ok "exec: a function named claude is bypassed for the PATH binary" \
+rad-ok "exec: a function named claude is bypassed for the PATH binary" \
    "argv=[--dangerously-skip-permissions]" "$out"
 
 # ---- failure arm: the shell survives ----------------------------------------
 
-out=$( PATH=/usr/bin:/bin; claad 2>&1; print "rc=$? survived" )
-ok "missing: claad returns 127, reports, and the shell is still there" \
+out=$( PATH=$tmp/empty; claad 2>&1; print "rc=$? survived" )
+rad-ok "missing: claad returns 127, reports, and the shell is still there" \
    "claad: no executable 'claude' on PATH
 rc=127 survived" "$out"
 
 mkdir -p "$tmp/noexec" && : > "$tmp/noexec/claude"
-out=$( PATH=$tmp/noexec:/usr/bin:/bin; claad 2>&1; print "rc=$? survived" )
-ok "not executable: same report, shell still there" \
+out=$( PATH=$tmp/noexec; claad 2>&1; print "rc=$? survived" )
+rad-ok "not executable: same report, shell still there" \
    "claad: no executable 'claude' on PATH
 rc=127 survived" "$out"
 
 # ---- summary ---------------------------------------------------------------
 
-summary
+rad-summary
