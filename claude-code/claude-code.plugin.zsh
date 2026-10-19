@@ -2,7 +2,12 @@
 # shell loaded (p10k, plugins, prompt hooks) runs alongside it, and the terminal
 # ends when claude does. SHELL=bash is what claude's own subprocess shell uses.
 claad () {
-    SHELL=bash exec claude --dangerously-skip-permissions "$@"
+    # [LAW:no-silent-failure] zsh exits the whole interactive shell when exec
+    # cannot find its target, taking the error with it. Resolve first, so a
+    # missing claude is reported to a shell that is still there.
+    local bin
+    bin=$(command -v claude) || { print -u2 "claad: no 'claude' on PATH"; return 127; }
+    SHELL=bash exec "$bin" --dangerously-skip-permissions "$@"
 }
 
 # Ensure this runs in a subshell - note the parens rather than curly braces
