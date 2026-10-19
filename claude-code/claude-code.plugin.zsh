@@ -8,7 +8,7 @@ claad () {
     # whence -p: the PATH binary only — an alias or wrapper function named
     # claude is not something exec can run, and is deliberately not consulted.
     local bin
-    bin=$(whence -p claude) && [[ -x $bin ]] || { print -u2 "claad: no executable 'claude' on PATH"; return 127; }
+    bin=$(whence -p claude) && [[ -x "$bin" ]] || { print -u2 "claad: no executable 'claude' on PATH"; return 127; }
     SHELL=bash exec "$bin" --dangerously-skip-permissions "$@"
 }
 

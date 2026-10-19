@@ -15,26 +15,15 @@
 typeset -g script_dir=${${(%):-%x}:A:h}
 source "${script_dir:h}/claude-code.plugin.zsh"
 
-typeset -gi PASS=0 FAIL=0
-
-# ok <desc> <expected> <actual> — exact-match assertion
-function ok() {
-  if [[ $2 == $3 ]]; then
-    (( ++PASS )); print -r -- "ok   - $1"
-  else
-    (( ++FAIL )); print -r -- "FAIL - $1"
-    print -r -- "       expected: ${(qqqq)2}"
-    print -r -- "       actual:   ${(qqqq)3}"
-  fi
-}
+source "${script_dir:h:h}/tests/harness.zsh"
 
 typeset -g tmp=$(mktemp -d) && trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/bin"
-# The stand-in claude reports what it was exec'd with: SHELL and argv prove
-# the env and arguments arrived untouched.
+# The stand-in claude reports what it was exec'd with: SHELL, and each argv
+# word in its own brackets so a lost word boundary shows.
 cat > "$tmp/bin/claude" <<'FAKE'
 #!/bin/sh
-printf 'SHELL=%s argv=%s\n' "$SHELL" "$*"
+printf 'SHELL=%s argv=' "$SHELL"; printf '[%s]' "$@"; printf '\n'
 FAKE
 chmod +x "$tmp/bin/claude"
 
@@ -44,15 +33,15 @@ chmod +x "$tmp/bin/claude"
 typeset -g out
 out=$( PATH=$tmp/bin:/usr/bin:/bin; claad --resume x "a b"; print NOT-REACHED )
 ok "exec: claude replaces the shell, with SHELL=bash and argv intact" \
-   "SHELL=bash argv=--dangerously-skip-permissions --resume x a b" "$out"
+   "SHELL=bash argv=[--dangerously-skip-permissions][--resume][x][a b]" "$out"
 
 out=$( PATH=$tmp/bin:/usr/bin:/bin; alias claude='/nonexistent/claude'; claad; print NOT-REACHED )
 ok "exec: an alias named claude is bypassed for the PATH binary" \
-   "SHELL=bash argv=--dangerously-skip-permissions" "$out"
+   "SHELL=bash argv=[--dangerously-skip-permissions]" "$out"
 
 out=$( PATH=$tmp/bin:/usr/bin:/bin; claude() { print WRAPPER; }; claad; print NOT-REACHED )
 ok "exec: a function named claude is bypassed for the PATH binary" \
-   "SHELL=bash argv=--dangerously-skip-permissions" "$out"
+   "SHELL=bash argv=[--dangerously-skip-permissions]" "$out"
 
 # ---- failure arm: the shell survives ----------------------------------------
 
@@ -69,6 +58,4 @@ rc=127 survived" "$out"
 
 # ---- summary ---------------------------------------------------------------
 
-print -r -- "----"
-print -r -- "pass: $PASS  fail: $FAIL"
-(( FAIL == 0 )) || exit 1
+summary

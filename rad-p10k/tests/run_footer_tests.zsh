@@ -29,31 +29,7 @@ typeset -g script_dir=${${(%):-%x}:A:h}
 source "${script_dir:h}/config/30-git-formatter.zsh"
 source "${script_dir:h}/config/50-transient.zsh"
 
-typeset -gi PASS=0 FAIL=0
-
-# ok <desc> <expected> <actual> — exact-match assertion
-function ok() {
-  if [[ $2 == $3 ]]; then
-    (( ++PASS )); print -r -- "ok   - $1"
-  else
-    (( ++FAIL )); print -r -- "FAIL - $1"
-    print -r -- "       expected: ${(qqqq)2}"
-    print -r -- "       actual:   ${(qqqq)3}"
-  fi
-}
-
-# okm <desc> <glob-pattern> <actual> — pattern assertion (use ^pat to negate)
-function okm() {
-  local negate= pat=$2
-  [[ $pat == '^'* ]] && { negate=1; pat=${pat#^}; }
-  if [[ -z $negate && $3 == ${~pat} || -n $negate && $3 != ${~pat} ]]; then
-    (( ++PASS )); print -r -- "ok   - $1"
-  else
-    (( ++FAIL )); print -r -- "FAIL - $1"
-    print -r -- "       pattern:  ${(qqqq)2}"
-    print -r -- "       actual:   ${(qqqq)3}"
-  fi
-}
+source "${script_dir:h:h}/tests/harness.zsh"
 
 # Renders one footer line in <dir> at width <columns>; REPLY = the line with
 # ANSI escapes stripped, so ${(m)#REPLY} is its display width in cells.
@@ -213,6 +189,4 @@ okm "prompt segment: branch truncated via shared helper" "*${trunc_branch}*" "$m
 
 # ---- summary ---------------------------------------------------------------
 
-print -r -- "----"
-print -r -- "pass: $PASS  fail: $FAIL"
-(( FAIL == 0 )) || exit 1
+summary
