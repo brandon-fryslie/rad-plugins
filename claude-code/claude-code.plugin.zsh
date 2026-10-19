@@ -1,8 +1,9 @@
-# Ensure this runs in a subshell - note the parens rather than curly braces
-claad () (
-    export SHELL=bash
-    claude --dangerously-skip-permissions "$@"
-)
+# exec, not a subshell: claude replaces this shell, so nothing the interactive
+# shell loaded (p10k, plugins, prompt hooks) runs alongside it, and the terminal
+# ends when claude does. SHELL=bash is what claude's own subprocess shell uses.
+claad () {
+    SHELL=bash exec claude --dangerously-skip-permissions "$@"
+}
 
 # Ensure this runs in a subshell - note the parens rather than curly braces
 clod () (
