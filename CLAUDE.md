@@ -14,7 +14,11 @@ This repository contains Zsh plugins for the rad-shell framework. The rad-shell 
 
 # Run rad-p10k command-footer smoke tests
 ./rad-p10k/tests/run_footer_tests.zsh
+
+# Run claad launcher smoke tests
+./claude-code/tests/run_claad_tests.zsh
 ```
+Shared assertion helpers for the zsh suites live in `tests/harness.zsh`.
 
 To test plugin changes interactively:
 ```bash

@@ -1,8 +1,17 @@
-# Ensure this runs in a subshell - note the parens rather than curly braces
-claad () (
-    export SHELL=bash
-    claude --dangerously-skip-permissions "$@"
-)
+# exec, not a subshell: claude replaces this shell, so nothing the interactive
+# shell loaded (p10k, plugins, prompt hooks) runs alongside it, and the terminal
+# ends when claude does. Claude's own subprocess shell is decided by the managed
+# Claude settings (dotfiles config/claude/settings.managed.json), not here.
+claad () {
+    # [LAW:no-silent-failure] zsh exits the whole interactive shell when exec
+    # cannot run its target, taking the error with it. Resolve the binary
+    # first, so a missing claude is reported to a shell that is still there.
+    # whence -p: the executable PATH binary only — an alias or wrapper function
+    # named claude is not something exec can run, and is deliberately not consulted.
+    local bin
+    bin=$(whence -p claude) || { print -u2 "claad: no executable 'claude' on PATH"; return 127; }
+    exec "$bin" --dangerously-skip-permissions "$@"
+}
 
 # Ensure this runs in a subshell - note the parens rather than curly braces
 clod () (
