@@ -3,10 +3,12 @@
 # ends when claude does. SHELL=bash is what claude's own subprocess shell uses.
 claad () {
     # [LAW:no-silent-failure] zsh exits the whole interactive shell when exec
-    # cannot find its target, taking the error with it. Resolve first, so a
-    # missing claude is reported to a shell that is still there.
+    # cannot run its target, taking the error with it. Resolve the binary
+    # first, so a missing claude is reported to a shell that is still there.
+    # whence -p: the PATH binary only — an alias or wrapper function named
+    # claude is not something exec can run, and is deliberately not consulted.
     local bin
-    bin=$(command -v claude) || { print -u2 "claad: no 'claude' on PATH"; return 127; }
+    bin=$(whence -p claude) && [[ -x $bin ]] || { print -u2 "claad: no executable 'claude' on PATH"; return 127; }
     SHELL=bash exec "$bin" --dangerously-skip-permissions "$@"
 }
 
